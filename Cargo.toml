@@ -6,7 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tetra = "0.6"
-egui-tetra = "0.2"
-egui = "0.14"
+macroquad = "0.3"
+egui-macroquad = "0.7"
+egui = "0.15"
 rand = "0.8"
+instant = "0.1"
+getrandom = { version = "0.2", features = ["js"] }
+num-traits = "0.2"

@@ -2,7 +2,7 @@ use super::*;
 
 // the kernel should be a square matrix
 #[derive(Debug, Clone)]
-struct Convolution<T: Copy + Clone, const KW: usize> {
+pub struct Convolution<T: Copy + Clone, const KW: usize> {
     width: usize,
     height: usize,
     base: Vec<Vec<T>>,

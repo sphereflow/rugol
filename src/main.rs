@@ -54,17 +54,6 @@ impl<const CW: usize> RState<CW> {
         self.tick = Instant::now();
         self.fields
             .convolution(&self.conv_matrix.data.concat(), &self.rules);
-        // let mut res = Convolution::new(CELLS_X, CELLS_Y);
-
-        // for ixx in 0..CELLS_X {
-        //     for ixy in 0..CELLS_Y {
-        //         let conv = self.fields.index((ixx, ixy));
-        //         let val = self.rules.apply(conv);
-        //         self.fields.set_at_index((ixx, ixy), val);
-        //     }
-        // }
-
-        // self.fields = res;
         self.elapsed = self.tick.elapsed();
     }
 

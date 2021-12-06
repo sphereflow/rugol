@@ -44,3 +44,25 @@ pub fn classic_rules() -> Rules {
         ],
     }
 }
+
+pub fn flame_rules() -> Rules {
+    Rules {
+        rules: vec![
+            Rule {
+                state: 1,
+                range: 0..=3,
+                transition: 0,
+            },
+            Rule {
+                state: 1,
+                range: 10..=28,
+                transition: 0,
+            },
+            Rule {
+                state: 0,
+                range: 6..=8,
+                transition: 1,
+            },
+        ],
+    }
+}

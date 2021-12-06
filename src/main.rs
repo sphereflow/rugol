@@ -195,10 +195,13 @@ async fn main() {
 
         egui_macroquad::ui(|ctx| {
             Window::new("Rugol").show(ctx, |ui| {
+                #[cfg(not(target_arch = "wasm32"))]
                 ui.label(format!(
                     "frame_time: {} ms",
                     (gol.elapsed.as_micros() as f64) * 0.001
                 ));
+                #[cfg(target_arch = "wasm32")]
+                ui.label(format!("frame_time: {} ms", gol.elapsed.as_micros()));
                 gol.control_ui(ui);
                 gol.edit_rules_ui(ui);
                 gol.edit_conv_matrix_ui(ui);

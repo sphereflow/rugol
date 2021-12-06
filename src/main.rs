@@ -68,37 +68,6 @@ impl<const CW: usize> RState<CW> {
         self.elapsed = self.tick.elapsed();
     }
 
-    // xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    // xxxxxxxxxxxxx*CCxxxxxxxxxxxx
-    // xxxxxxxxxxxxxCECxxxxxxxxxxxx
-    // xxxxxxxxxxxxxCCCxxxxxxxxxxxx
-    // xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    // xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    // xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    // C = convolution
-    // E = element
-    // * = ix_cut{x/y}
-    fn convolution(&mut self, ixx: usize, ixy: usize) -> u8 {
-        let cut_x: i32 = ixx as i32 - (self.conv_matrix.width() / 2) as i32;
-        let cut_y: i32 = ixy as i32 - (self.conv_matrix.height() / 2) as i32;
-        let fields_old = self.fields.clone();
-        let mut acc = 0;
-        for (conv_x, ix_cut_x) in (cut_x.max(0)
-            ..(cut_x + self.conv_matrix.width() as i32).min(self.fields.width() as i32))
-            .enumerate()
-        {
-            for (conv_y, ix_cut_y) in (cut_y.max(0)
-                ..(cut_y + self.conv_matrix.height() as i32).min(self.fields.height() as i32))
-                .enumerate()
-            {
-                acc += self.conv_matrix.index((conv_x, conv_y))
-                    * fields_old.index((ix_cut_x as usize, ix_cut_y as usize));
-            }
-        }
-
-        acc
-    }
-
     fn control_ui(&mut self, ui: &mut Ui) {
         if self.paused {
             ui.horizontal(|ui| {

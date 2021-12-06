@@ -1,5 +1,6 @@
 use super::*;
 
+#[derive(Clone, Debug)]
 pub struct MatrixPacked {
     tiles: Vec<[u64; 8]>,
     width: usize,
@@ -90,3 +91,39 @@ impl Matrix for MatrixPacked {
     }
 }
 
+// xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+// xxxxxxxxxxxxx*CCxxxxxxxxxxxx
+// xxxxxxxxxxxxxCECxxxxxxxxxxxx
+// xxxxxxxxxxxxxCCCxxxxxxxxxxxx
+// xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+// xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+// xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+// C = convolution
+// E = element
+// * = ix_cut{x/y}
+impl ConvolutionT<u8> for MatrixPacked {
+    fn convolution(&mut self, kernel: &[u8], rules: &Rules) {
+        let kernel_width = (kernel.len() as f32).sqrt() as usize;
+        let fields_old = self.clone();
+        for ixy in 0..self.height {
+            for ixx in 0..self.width {
+                let cut_x: i32 = ixx as i32 - (kernel_width / 2) as i32;
+                let cut_y: i32 = ixy as i32 - (kernel_width / 2) as i32;
+                let mut acc = 0;
+                for (conv_x, ix_cut_x) in
+                    (cut_x.max(0)..(cut_x + kernel_width as i32).min(self.width as i32)).enumerate()
+                {
+                    for (conv_y, ix_cut_y) in (cut_y.max(0)
+                        ..(cut_y + kernel_width as i32).min(self.height as i32))
+                        .enumerate()
+                    {
+                        acc += kernel[conv_x + conv_y * kernel_width]
+                            * fields_old.index((ix_cut_x as usize, ix_cut_y as usize));
+                    }
+                }
+
+                self.set_at_index((ixx, ixy), rules.apply(fields_old.index((ixx, ixy)), acc));
+            }
+        }
+    }
+}

@@ -1,3 +1,4 @@
+use colormap::{ColorMap, ColorMapT};
 use egui::{Button, DragValue, Separator, Slider, Ui, Window};
 use instant::{Duration, Instant};
 use macroquad::prelude::*;
@@ -7,11 +8,13 @@ use std::{
     ops::{Add, Mul, RangeInclusive},
 };
 
-use matrix::traits::*;
 use matrix::const_matrix::*;
 use matrix::convolution::*;
+use matrix::traits::*;
 use rules::*;
 
+pub mod colormap;
+pub mod fade;
 pub mod matrix;
 pub mod rules;
 
@@ -19,7 +22,7 @@ const CELLS_X: usize = 400;
 const CELLS_Y: usize = 200;
 
 // type RState = RugolState<ConstMatrix<u8, CELLS_X, CELLS_Y>, ConstMatrix<u8, 3, 3>>;
-type RState5 = RugolState<Convolution<u8, 5>, ConstMatrix<u8, 5, 5>>;
+type RState<const CW: usize> = RugolState<Convolution<u8, CW>, ConstMatrix<u8, CW, CW>>;
 
 struct RugolState<M: Matrix + Clone, C: Matrix> {
     conv_matrix: C,
@@ -28,10 +31,10 @@ struct RugolState<M: Matrix + Clone, C: Matrix> {
     timer: u64,
     tick: Instant,
     elapsed: Duration,
-    wait: u64,
+    paused: bool,
 }
 
-impl RState5 {
+impl RState<5> {
     fn new() -> Self {
         let tick = Instant::now();
         let conv_matrix = ConstMatrix::new_std_conv_matrix(3, 3);
@@ -43,7 +46,7 @@ impl RState5 {
             timer: 0,
             tick,
             elapsed: Duration::new(0, 0),
-            wait: 1,
+            paused: true,
         }
     }
 
@@ -150,6 +153,7 @@ impl RState5 {
 #[macroquad::main("Rugol")]
 async fn main() {
     let mut gol = RugolState::new();
+    let mut color_map = <ColorMap as ColorMapT<u8>>::new();
     loop {
         clear_background(BLACK);
 
@@ -161,6 +165,7 @@ async fn main() {
                 ));
                 gol.edit_rules_ui(ui);
                 gol.edit_conv_matrix_ui(ui);
+                color_map.edit(ui);
             });
         });
 
@@ -174,17 +179,7 @@ async fn main() {
                 let y = (ixy as f32 * screen_height()) / (gol.fields.height() as f32);
                 let w = screen_width() / (gol.fields.width() as f32);
                 let h = screen_height() / (gol.fields.height() as f32);
-                match gol.fields.index((ixx, ixy)) {
-                    0 => draw_rectangle(x, y, w, h, color_u8!(50, 20, 20, 255)),
-                    1 => draw_rectangle(x, y, w, h, color_u8!(170, 40, 40, 255)),
-                    2 => draw_rectangle(x, y, w, h, color_u8!(120, 80, 40, 255)),
-                    3 => draw_rectangle(x, y, w, h, color_u8!(70, 120, 40, 255)),
-                    4 => draw_rectangle(x, y, w, h, color_u8!(20, 160, 40, 255)),
-                    5 => draw_rectangle(x, y, w, h, color_u8!(0, 100, 70, 255)),
-                    6 => draw_rectangle(x, y, w, h, color_u8!(0, 40, 120, 255)),
-                    7 => draw_rectangle(x, y, w, h, color_u8!(0, 0, 170, 255)),
-                    _ => draw_rectangle(x, y, w, h, color_u8!(255, 255, 255, 255)),
-                }
+                draw_rectangle(x, y, w, h, color_map.map(gol.fields.index((ixx, ixy))));
             }
         }
         egui_macroquad::draw();

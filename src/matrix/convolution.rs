@@ -9,13 +9,37 @@ pub struct Convolution<T: Copy + Clone, const KW: usize> {
 }
 
 impl<const KW: usize> ConvolutionT<u8> for Convolution<u8, KW> {
-    fn convolution(&mut self, kernel: &[u8], rules: &Rules) {
+    fn convolution(&mut self, kernel: &[u8], rules: &Rules<u8>) {
         let mut new_base: Vec<Vec<u8>> = Vec::from_iter(
             repeat(Vec::from_iter(repeat(0).take(KW.pow(2)))).take(self.width * self.height),
         );
         let wh = KW / 2;
         for (slice_ix, slice) in self.base.iter().enumerate() {
             let mut acc: u8 = 0;
+            for ix in 0..KW.pow(2) {
+                acc += slice[ix] * kernel[ix];
+            }
+            let initial_value = slice[wh * KW + wh];
+            Self::set_base_at_index(
+                &mut new_base,
+                self.width,
+                self.height,
+                (slice_ix % self.width, slice_ix / self.width),
+                rules.apply(initial_value, acc),
+            );
+        }
+        self.base = new_base;
+    }
+}
+
+impl<const KW: usize> ConvolutionT<i8> for Convolution<i8, KW> {
+    fn convolution(&mut self, kernel: &[i8], rules: &Rules<i8>) {
+        let mut new_base: Vec<Vec<i8>> = Vec::from_iter(
+            repeat(Vec::from_iter(repeat(0).take(KW.pow(2)))).take(self.width * self.height),
+        );
+        let wh = KW / 2;
+        for (slice_ix, slice) in self.base.iter().enumerate() {
+            let mut acc: i8 = 0;
             for ix in 0..KW.pow(2) {
                 acc += slice[ix] * kernel[ix];
             }
@@ -79,6 +103,58 @@ impl<const KW: usize> Matrix for Convolution<u8, KW> {
         for ixx in 0..width {
             for ixy in 0..height {
                 let random_value = gen_range(0, 2);
+                Self::set_base_at_index(&mut res.base, width, height, (ixx, ixy), random_value);
+            }
+        }
+        res
+    }
+
+    fn new_std_conv_matrix(width: usize, height: usize) -> Self {
+        let mut base = vec![vec![1; KW.pow(2)]; width * height];
+        let wh = KW / 2;
+        Self::set_base_at_index(&mut base, KW, KW, (wh, wh), 0);
+        Convolution {
+            width,
+            height,
+            base,
+        }
+    }
+
+    fn index(&self, (ixx, ixy): (usize, usize)) -> Self::Output {
+        let wh = KW / 2;
+        self.base[ixy * self.width + ixx][wh * KW + wh]
+    }
+
+    fn set_at_index(&mut self, ix: (usize, usize), value: Self::Output) {
+        Self::set_base_at_index(&mut self.base, self.width, self.height, ix, value);
+    }
+
+    fn width(&self) -> usize {
+        self.width
+    }
+
+    fn height(&self) -> usize {
+        self.height
+    }
+}
+
+// KW : width of the convolution kernel
+impl<const KW: usize> Matrix for Convolution<i8, KW> {
+    type Output = i8;
+    fn new(width: usize, height: usize) -> Self {
+        let base: Vec<Vec<i8>> = vec![vec![0; KW.pow(2)]; width * height];
+        Convolution {
+            width,
+            height,
+            base,
+        }
+    }
+
+    fn new_random(width: usize, height: usize) -> Self {
+        let mut res = Self::new(width, height);
+        for ixx in 0..width {
+            for ixy in 0..height {
+                let random_value = gen_range::<i16>(0, 2) as i8;
                 Self::set_base_at_index(&mut res.base, width, height, (ixx, ixy), random_value);
             }
         }

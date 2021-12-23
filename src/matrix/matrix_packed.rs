@@ -102,7 +102,7 @@ impl Matrix for MatrixPacked {
 // E = element
 // * = ix_cut{x/y}
 impl ConvolutionT<u8> for MatrixPacked {
-    fn convolution(&mut self, kernel: &[u8], rules: &Rules) {
+    fn convolution(&mut self, kernel: &[u8], rules: &Rules<u8>) {
         let kernel_width = (kernel.len() as f64).sqrt() as usize;
         let fields_old = self.clone();
         for ixy in 0..self.height {

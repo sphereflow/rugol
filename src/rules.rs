@@ -1,29 +1,31 @@
 use std::ops::RangeInclusive;
 
-pub struct Rule {
-    pub state: u8,
-    pub range: RangeInclusive<u8>,
-    pub transition: u8,
+use crate::FieldType;
+
+pub struct Rule<T: Copy> {
+    pub state: T,
+    pub range: RangeInclusive<T>,
+    pub transition: T,
 }
 
-pub struct Rules {
-    pub rules: Vec<Rule>,
+pub struct Rules<T: Copy> {
+    pub rules: Vec<Rule<T>>,
 }
 
-impl Rules {
-    pub fn apply(&self, initial_value: u8, convolution: u8) -> u8 {
+impl<T: Copy + PartialEq + PartialOrd> Rules<T> {
+    pub fn apply(&self, initial_value: T, convolution: T) -> T {
         for rule in &self.rules {
             if rule.state == initial_value && rule.range.contains(&convolution) {
                 return rule.transition;
             }
         }
 
-        // you think the rules don't apply to you mister anderson
+        // you think the rules don't apply to you Mr. Anderson
         initial_value
     }
 }
 
-pub fn classic_rules() -> Rules {
+pub fn classic_rules() -> Rules<FieldType> {
     Rules {
         rules: vec![
             Rule {
@@ -45,7 +47,7 @@ pub fn classic_rules() -> Rules {
     }
 }
 
-pub fn flame_rules() -> Rules {
+pub fn flame_rules() -> Rules<FieldType> {
     Rules {
         rules: vec![
             Rule {

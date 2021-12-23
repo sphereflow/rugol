@@ -11,6 +11,6 @@ pub trait Matrix {
     fn height(&self) -> usize;
 }
 
-pub trait ConvolutionT<T> {
-    fn convolution(&mut self, kernel: &[T], rules: &Rules);
+pub trait ConvolutionT<T: Copy> {
+    fn convolution(&mut self, kernel: &[T], rules: &Rules<T>);
 }

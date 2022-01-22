@@ -1,11 +1,11 @@
 use std::ops::RangeInclusive;
 
-use crate::FieldType;
+use crate::{CellType, FieldType};
 
 pub struct Rule<T: Copy> {
-    pub state: T,
+    pub state: CellType,
     pub range: RangeInclusive<T>,
-    pub transition: T,
+    pub transition: CellType,
 }
 
 pub struct Rules<T: Copy> {
@@ -13,7 +13,7 @@ pub struct Rules<T: Copy> {
 }
 
 impl<T: Copy + PartialEq + PartialOrd> Rules<T> {
-    pub fn apply(&self, initial_value: T, convolution: T) -> T {
+    pub fn apply(&self, initial_value: CellType, convolution: T) -> CellType {
         for rule in &self.rules {
             if rule.state == initial_value && rule.range.contains(&convolution) {
                 return rule.transition;
@@ -29,19 +29,19 @@ pub fn classic_rules() -> Rules<FieldType> {
     Rules {
         rules: vec![
             Rule {
-                state: 1,
+                state: CellType::A,
                 range: 0..=1,
-                transition: 0,
+                transition: CellType::NoCell,
             },
             Rule {
-                state: 1,
+                state: CellType::A,
                 range: 4..=8,
-                transition: 0,
+                transition: CellType::NoCell,
             },
             Rule {
-                state: 0,
+                state: CellType::NoCell,
                 range: 3..=3,
-                transition: 1,
+                transition: CellType::A,
             },
         ],
     }
@@ -51,19 +51,19 @@ pub fn flame_rules() -> Rules<FieldType> {
     Rules {
         rules: vec![
             Rule {
-                state: 1,
+                state: CellType::A,
                 range: 0..=3,
-                transition: 0,
+                transition: CellType::NoCell,
             },
             Rule {
-                state: 1,
+                state: CellType::A,
                 range: 10..=28,
-                transition: 0,
+                transition: CellType::NoCell,
             },
             Rule {
-                state: 0,
+                state: CellType::NoCell,
                 range: 6..=8,
-                transition: 1,
+                transition: CellType::A,
             },
         ],
     }

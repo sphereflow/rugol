@@ -1,4 +1,6 @@
-use crate::rules::Rules;
+use crate::CellType;
+
+use super::vec_matrix::VecMatrix;
 
 pub trait Matrix {
     type Output;
@@ -11,6 +13,7 @@ pub trait Matrix {
     fn height(&self) -> usize;
 }
 
-pub trait ConvolutionT<T: Copy> {
-    fn convolution(&mut self, kernel: &[T], rules: &Rules<T>);
+pub trait ConvolutionT<Conv: Matrix<Output = T>, T: Copy> {
+    /// places accumulated values in self
+    fn convolution(&mut self, kernels: &[Conv], cell_type_matrix: &VecMatrix<CellType>);
 }

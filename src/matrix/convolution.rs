@@ -1,4 +1,13 @@
-use super::*;
+use std::iter::repeat;
+
+use macroquad::rand::gen_range;
+
+use crate::CellType;
+
+use super::{
+    traits::{ConvolutionT, Matrix},
+    vec_matrix::VecMatrix,
+};
 
 // the kernel should be a square matrix
 #[derive(Debug, Clone)]
@@ -8,49 +17,42 @@ pub struct Convolution<T: Copy + Clone, const KW: usize> {
     base: Vec<Vec<T>>,
 }
 
-impl<const KW: usize> ConvolutionT<u8> for Convolution<u8, KW> {
-    fn convolution(&mut self, kernel: &[u8], rules: &Rules<u8>) {
+impl<Conv: Matrix<Output = u8>, const KW: usize> ConvolutionT<Conv, u8> for Convolution<u8, KW> {
+    fn convolution(&mut self, kernels: &[Conv], cell_type_matrix: &VecMatrix<CellType>) {
         let mut new_base: Vec<Vec<u8>> = Vec::from_iter(
             repeat(Vec::from_iter(repeat(0).take(KW.pow(2)))).take(self.width * self.height),
         );
-        let wh = KW / 2;
         for (slice_ix, slice) in self.base.iter().enumerate() {
             let mut acc: u8 = 0;
-            for ix in 0..KW.pow(2) {
-                acc += slice[ix] * kernel[ix];
+            let (ixx, ixy) = (slice_ix % self.width, slice_ix / self.width);
+            let kernel_ix = cell_type_matrix.index((ixx, ixy)).as_index();
+            for kixx in 0..KW {
+                for kixy in 0..KW {
+                    acc += slice[kixy * KW + kixx] * kernels[kernel_ix].index((kixx, kixy));
+                }
             }
-            let initial_value = slice[wh * KW + wh];
-            Self::set_base_at_index(
-                &mut new_base,
-                self.width,
-                self.height,
-                (slice_ix % self.width, slice_ix / self.width),
-                rules.apply(initial_value, acc),
-            );
+            Self::set_base_at_index(&mut new_base, self.width, self.height, (ixx, ixy), acc);
         }
         self.base = new_base;
     }
 }
 
-impl<const KW: usize> ConvolutionT<i8> for Convolution<i8, KW> {
-    fn convolution(&mut self, kernel: &[i8], rules: &Rules<i8>) {
+impl<Conv: Matrix<Output = i8>, const KW: usize> ConvolutionT<Conv, i8> for Convolution<i8, KW> {
+    fn convolution(&mut self, kernels: &[Conv], cell_type_matrix: &VecMatrix<CellType>) {
+        // 0 initialize
         let mut new_base: Vec<Vec<i8>> = Vec::from_iter(
             repeat(Vec::from_iter(repeat(0).take(KW.pow(2)))).take(self.width * self.height),
         );
-        let wh = KW / 2;
         for (slice_ix, slice) in self.base.iter().enumerate() {
             let mut acc: i8 = 0;
-            for ix in 0..KW.pow(2) {
-                acc += slice[ix] * kernel[ix];
+            let (ixx, ixy) = (slice_ix % self.width, slice_ix / self.width);
+            let kernel_ix = cell_type_matrix.index((ixx, ixy)).as_index();
+            for kixx in 0..KW {
+                for kixy in 0..KW {
+                    acc += slice[kixy * KW + kixx] * kernels[kernel_ix].index((kixx, kixy));
+                }
             }
-            let initial_value = slice[wh * KW + wh];
-            Self::set_base_at_index(
-                &mut new_base,
-                self.width,
-                self.height,
-                (slice_ix % self.width, slice_ix / self.width),
-                rules.apply(initial_value, acc),
-            );
+            Self::set_base_at_index(&mut new_base, self.width, self.height, (ixx, ixy), acc);
         }
         self.base = new_base;
     }

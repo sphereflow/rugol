@@ -1,4 +1,13 @@
-use super::*;
+use std::iter::repeat;
+
+use macroquad::rand::gen_range;
+
+use crate::CellType;
+
+use super::{
+    traits::{ConvolutionT, Matrix},
+    vec_matrix::VecMatrix,
+};
 
 #[derive(Clone, Debug)]
 pub struct MatrixPacked {
@@ -101,15 +110,16 @@ impl Matrix for MatrixPacked {
 // C = convolution
 // E = element
 // * = ix_cut{x/y}
-impl ConvolutionT<u8> for MatrixPacked {
-    fn convolution(&mut self, kernel: &[u8], rules: &Rules<u8>) {
-        let kernel_width = (kernel.len() as f64).sqrt() as usize;
+impl<Conv: Matrix<Output = u8>> ConvolutionT<Conv, u8> for MatrixPacked {
+    fn convolution(&mut self, kernels: &[Conv], cell_type_matrix: &VecMatrix<CellType>) {
+        let kernel_width = kernels[0].width();
         let fields_old = self.clone();
         for ixy in 0..self.height {
             for ixx in 0..self.width {
                 let cut_x: i32 = ixx as i32 - (kernel_width / 2) as i32;
                 let cut_y: i32 = ixy as i32 - (kernel_width / 2) as i32;
                 let mut acc = 0;
+                let kernel_ix = cell_type_matrix.index((ixx, ixy)).as_index();
                 for (conv_x, ix_cut_x) in
                     (cut_x.max(0)..(cut_x + kernel_width as i32).min(self.width as i32)).enumerate()
                 {
@@ -117,12 +127,12 @@ impl ConvolutionT<u8> for MatrixPacked {
                         ..(cut_y + kernel_width as i32).min(self.height as i32))
                         .enumerate()
                     {
-                        acc += kernel[conv_x + conv_y * kernel_width]
+                        acc += kernels[kernel_ix].index((conv_x, conv_y))
                             * fields_old.index((ix_cut_x as usize, ix_cut_y as usize));
                     }
                 }
 
-                self.set_at_index((ixx, ixy), rules.apply(fields_old.index((ixx, ixy)), acc));
+                self.set_at_index((ixx, ixy), acc);
             }
         }
     }

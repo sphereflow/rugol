@@ -1,4 +1,4 @@
-use colormap::{ColorMap, ColorMapT};
+use cell_type::{CellType, CellTypeMap};
 use egui::Slider;
 use egui::{Align, Button, Color32, DragValue, Label, Layout, Rgba, Sense, Separator, Ui, Window};
 use fade::Fader;
@@ -11,12 +11,12 @@ use matrix::traits::*;
 use matrix::{const_matrix::*, vec_matrix::VecMatrix};
 use rules::*;
 
-pub mod colormap;
+pub mod cell_type;
 pub mod fade;
 pub mod matrix;
 pub mod rules;
 
-const CELLS: [(usize, usize); 4] = [(100, 50), (200, 100), (400, 200), (800, 400)];
+const CELLS: [(usize, usize); 5] = [(10, 5), (100, 50), (200, 100), (400, 200), (800, 400)];
 
 // type RState = RugolState<ConstMatrix<u8, CELLS_X, CELLS_Y>, ConstMatrix<u8, 3, 3>>;
 type FieldType = i8;
@@ -25,11 +25,15 @@ type RState<const CW: usize> =
     RugolState<BaseMatrix<CW>, ConstMatrix<FieldType, CW, CW>, VecMatrix<[f32; 4]>>;
 
 struct RugolState<M: Matrix + Clone, C: Matrix, N: Matrix<Output = [f32; 4]>> {
-    conv_matrix: C,
-    color_map: ColorMap,
+    conv_kernels: [C; 9],
+    cell_type_map: CellTypeMap,
     rules: Rules<FieldType>,
+    /// Vec of matrices with `FieldType` elements
     fields_vec: Vec<M>,
-    fields_vec_ix: usize,
+    /// Vec of matrices with `CellType` elements
+    cell_type_vec: Vec<VecMatrix<CellType>>,
+    /// Index to `fields_vec` and `cell_type_vec`
+    vec_ix: usize,
     tick: Instant,
     elapsed: Duration,
     paused: bool,
@@ -41,21 +45,32 @@ impl<const CW: usize> RState<CW> {
     fn new() -> Self {
         let tick = Instant::now();
         let conv_matrix = ConstMatrix::new_std_conv_matrix(3, 3);
+        let cell_type_map = CellTypeMap::new();
         let fields_vec_ix = 0;
-        let fields_vec = {
+        let (fields_vec, cell_type_vec) = {
             let mut f = Vec::new();
+            let mut ct = Vec::new();
             for (cw, ch) in CELLS {
-                f.push(Convolution::new_random(cw, ch));
+                let mut field_type_matrix = Convolution::new(cw, ch);
+                let cell_type_matrix: VecMatrix<CellType> = VecMatrix::new_random(cw, ch);
+                for x in 0..cw {
+                    for y in 0..ch {
+                        field_type_matrix
+                            .set_at_index((x, y), cell_type_map[cell_type_matrix.index((x, y))].1);
+                    }
+                }
+                f.push(field_type_matrix);
+                ct.push(cell_type_matrix);
             }
-            f
+            (f, ct)
         };
-        let color_map = <ColorMap as ColorMapT<FieldType>>::new();
         RugolState {
-            conv_matrix,
-            color_map,
+            conv_kernels: [conv_matrix; 9],
+            cell_type_map,
             rules: classic_rules(),
             fields_vec,
-            fields_vec_ix,
+            cell_type_vec,
+            vec_ix: fields_vec_ix,
             tick,
             elapsed: Duration::new(0, 0),
             paused: true,
@@ -66,16 +81,36 @@ impl<const CW: usize> RState<CW> {
 
     fn step(&mut self) {
         self.tick = Instant::now();
-        self.fields_vec[self.fields_vec_ix]
-            .convolution(&self.conv_matrix.data.concat(), &self.rules);
+        let field_type_matrix = &mut self.fields_vec[self.vec_ix];
+        let cell_type_matrix = &mut self.cell_type_vec[self.vec_ix];
+        field_type_matrix.convolution(&self.conv_kernels, cell_type_matrix);
+        // map the accumulated values to the cell matrix
+        // field_type_matrix -> self.rules.apply(...) -> self.cell_type_vec[self.vec_ix]
+        // self.cell_type_vec[self.vec_ix] -> self.map.lookup(...) -> self.fields_vec[self.vec_ix]
+        for ixx in 0..field_type_matrix.width() {
+            for ixy in 0..field_type_matrix.height() {
+                let acc = field_type_matrix.index((ixx, ixy));
+                let initial_cell = cell_type_matrix.index((ixx, ixy));
+                let cell = self.rules.apply(initial_cell, acc);
+                let field = self.cell_type_map[cell].1;
+                field_type_matrix.set_at_index((ixx, ixy), field);
+                cell_type_matrix.set_at_index((ixx, ixy), cell);
+            }
+        }
         self.fader
-            .add(&self.fields_vec[self.fields_vec_ix], &self.color_map);
+            .add(&self.cell_type_vec[self.vec_ix], &self.cell_type_map);
         self.elapsed = self.tick.elapsed();
     }
 
     fn get_fields(&self) -> &BaseMatrix<CW> {
-        &self.fields_vec[self.fields_vec_ix]
+        &self.fields_vec[self.vec_ix]
     }
+
+    fn get_cells(&self) -> &VecMatrix<CellType> {
+        &self.cell_type_vec[self.vec_ix]
+    }
+
+    // Ui stuff
 
     fn control_ui(&mut self, ui: &mut Ui) {
         if self.paused {
@@ -87,10 +122,8 @@ impl<const CW: usize> RState<CW> {
                     self.step();
                 }
             });
-        } else {
-            if ui.button("⏸").clicked() {
-                self.paused = true;
-            }
+        } else if ui.button("⏸").clicked() {
+            self.paused = true;
         }
     }
 
@@ -98,33 +131,31 @@ impl<const CW: usize> RState<CW> {
         ui.horizontal(|ui| {
             if ui.add(Button::new("Add rule")).clicked() {
                 self.rules.rules.push(Rule {
-                    state: 0,
+                    state: CellType::NoCell,
                     range: 0..=0,
-                    transition: 0,
+                    transition: CellType::NoCell,
                 });
             }
-            if CW == 5 {
-                if ui.button("Flame").clicked() {
-                    self.conv_matrix.data = [[0; CW]; CW];
-                    for ixy in 0..CW {
-                        for ixx in 0..CW {
-                            if (ixx + ixy) % 2 == 1 {
-                                if (1..4).contains(&ixx) && (1..4).contains(&ixy) {
-                                    self.conv_matrix.data[ixx][ixy] = 2;
-                                } else {
-                                    self.conv_matrix.data[ixx][ixy] = 1;
-                                }
+            if CW == 5 && ui.button("Flame").clicked() {
+                self.conv_kernels[0].data = [[0; CW]; CW];
+                for ixy in 0..CW {
+                    for ixx in 0..CW {
+                        if (ixx + ixy) % 2 == 1 {
+                            if (1..4).contains(&ixx) && (1..4).contains(&ixy) {
+                                self.conv_kernels[0].data[ixx][ixy] = 2;
+                            } else {
+                                self.conv_kernels[0].data[ixx][ixy] = 1;
                             }
                         }
                     }
-                    self.rules = flame_rules();
                 }
+                self.rules = flame_rules();
             }
         });
         let mut o_delete_ix = None;
         for (del_ix, rule) in self.rules.rules.iter_mut().enumerate() {
             ui.horizontal(|ui| {
-                ui.add(DragValue::new(&mut rule.state).clamp_range(0..=7));
+                ui.add(DragValue::new(&mut rule.state));
                 ui.label("->");
                 ui.add(DragValue::new(&mut rule.transition).clamp_range(0..=7));
                 ui.add(Separator::default());
@@ -152,49 +183,61 @@ impl<const CW: usize> RState<CW> {
     }
 
     fn edit_conv_matrix_ui(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.vertical(|ui| {
-                for x in 0..self.conv_matrix.width() {
-                    ui.horizontal(|ui| {
-                        for y in 0..self.conv_matrix.height() {
-                            let val = self.conv_matrix.index((x, y));
-                            //ui.add(DragValue::new(&mut val));
-                            let col = self.color_map.map(&val);
-                            let text_col = if (col.r + col.g + col.b) < 0.5 {
-                                Color32::GRAY
-                            } else {
-                                Color32::BLACK
-                            };
-                            if ui
-                                .add(
-                                    Label::new(format!("{}", val))
-                                        .text_color(text_col)
-                                        .strong()
-                                        .heading()
-                                        .background_color(Rgba::from_rgb(col.r, col.g, col.b))
-                                        .sense(Sense::click_and_drag()),
-                                )
-                                .dragged()
-                            {
-                                self.conv_matrix
-                                    .set_at_index((x, y), self.color_map.get_selected_rules_val());
-                            }
+        for (cix, conv_matrix) in self.conv_kernels.iter_mut().enumerate() {
+            ui.collapsing(format!("Convolution Matrix: {}", cix), |ui| {
+                ui.horizontal(|ui| {
+                    ui.vertical(|ui| {
+                        for x in 0..conv_matrix.width() {
+                            ui.horizontal(|ui| {
+                                for y in 0..conv_matrix.height() {
+                                    let val = conv_matrix.index((x, y));
+                                    //ui.add(DragValue::new(&mut val));
+                                    let text_col;
+                                    let col = match self.cell_type_map.color_for_value(val) {
+                                        Some(col) => col,
+                                        None => WHITE,
+                                    };
+                                    if (col.r + col.g + col.b) < 0.5 {
+                                        text_col = Color32::GRAY
+                                    } else {
+                                        text_col = Color32::BLACK
+                                    }
+                                    if ui
+                                        .add(
+                                            Label::new(format!("{}", val))
+                                                .text_color(text_col)
+                                                .strong()
+                                                .heading()
+                                                .background_color(Rgba::from_rgb(
+                                                    col.r, col.g, col.b,
+                                                ))
+                                                .sense(Sense::click_and_drag()),
+                                        )
+                                        .dragged()
+                                    {
+                                        conv_matrix.set_at_index(
+                                            (x, y),
+                                            self.cell_type_map.get_selected_rules_val(),
+                                        );
+                                    }
+                                }
+                            });
                         }
                     });
-                }
-            });
-            ui.vertical(|ui| {
-                for x in 0..self.conv_matrix.width() {
-                    ui.horizontal(|ui| {
-                        for y in 0..self.conv_matrix.height() {
-                            let mut val = self.conv_matrix.index((x, y));
-                            ui.add(DragValue::new(&mut val));
-                            self.conv_matrix.set_at_index((x, y), val);
+                    ui.vertical(|ui| {
+                        for x in 0..conv_matrix.width() {
+                            ui.horizontal(|ui| {
+                                for y in 0..conv_matrix.height() {
+                                    let mut val = conv_matrix.index((x, y));
+                                    ui.add(DragValue::new(&mut val));
+                                    conv_matrix.set_at_index((x, y), val);
+                                }
+                            });
                         }
                     });
-                }
+                });
             });
-        });
+        }
     }
 }
 
@@ -233,18 +276,16 @@ async fn main() {
                     if ui.button("Settings").clicked() {
                         mode = UiMode::Settings;
                     }
-                    <ColorMap as ColorMapT<FieldType>>::edit(&mut gol.color_map, ui);
+                    CellTypeMap::edit(&mut gol.cell_type_map, ui);
                 }
                 UiMode::Settings => {
-                    for ix in 0..CELLS.len() {
-                            if ui.radio_value(&mut gol.fields_vec_ix, ix, format!("{}x{}", CELLS[ix].0, CELLS[ix].1)).changed() {
-                                let (w, h) = CELLS[gol.fields_vec_ix];
-                                gol.fader = Fader::new(w, h);
+                    for (ix, (w, h)) in CELLS.iter().enumerate() {
+                            if ui.radio_value(&mut gol.vec_ix, ix, format!("{}x{}", w, h)).changed() {
+                                gol.fader = Fader::new(*w, *h);
                             }
                     }
                     ui.checkbox(&mut gol.bfade, "fade");
-                    ui.label( "Fader: mix_factor");
-                    ui.add(Slider::new(&mut gol.fader.mix_factor, 0.0..=1.0));
+                    ui.add(Slider::new(&mut gol.fader.mix_factor, 0.0..=1.0).text("Fader: mix_factor"));
                     if ui.button("<-- back").clicked() {
                         mode = UiMode::Main;
                     }
@@ -270,8 +311,10 @@ async fn main() {
                     && (x..(x + w)).contains(&mouse_pos.0)
                     && (y..(y + h)).contains(&mouse_pos.1)
                 {
-                    gol.fields_vec[gol.fields_vec_ix]
-                        .set_at_index((ixx, ixy), gol.color_map.get_selected_rules_val());
+                    let val = gol.cell_type_map.get_selected_rules_val();
+                    let cell = gol.cell_type_map.get_selected_rules_cell();
+                    gol.fields_vec[gol.vec_ix].set_at_index((ixx, ixy), val);
+                    gol.cell_type_vec[gol.vec_ix].set_at_index((ixx, ixy), cell);
                 }
 
                 if gol.bfade {
@@ -282,7 +325,7 @@ async fn main() {
                         y,
                         w,
                         h,
-                        gol.color_map.map(&gol.get_fields().index((ixx, ixy))),
+                        gol.cell_type_map[gol.get_cells().index((ixx, ixy))].0,
                     );
                 }
             }

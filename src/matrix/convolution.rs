@@ -1,6 +1,7 @@
 use std::iter::repeat;
 
 use macroquad::rand::gen_range;
+use rand::{thread_rng, Rng};
 
 use crate::CellType;
 
@@ -111,6 +112,22 @@ impl<const KW: usize> Matrix for Convolution<u8, KW> {
         res
     }
 
+    fn new_random_range(
+        width: usize,
+        height: usize,
+        range: std::ops::RangeInclusive<Self::Output>,
+    ) -> Self {
+        let mut res = Self::new(width, height);
+        let mut rng = thread_rng();
+        for ixx in 0..width {
+            for ixy in 0..height {
+                let random_value = rng.gen_range(range.clone());
+                Self::set_base_at_index(&mut res.base, width, height, (ixx, ixy), random_value);
+            }
+        }
+        res
+    }
+
     fn new_std_conv_matrix(width: usize, height: usize) -> Self {
         let mut base = vec![vec![1; KW.pow(2)]; width * height];
         let wh = KW / 2;
@@ -157,6 +174,22 @@ impl<const KW: usize> Matrix for Convolution<i8, KW> {
         for ixx in 0..width {
             for ixy in 0..height {
                 let random_value = gen_range::<i16>(0, 2) as i8;
+                Self::set_base_at_index(&mut res.base, width, height, (ixx, ixy), random_value);
+            }
+        }
+        res
+    }
+
+    fn new_random_range(
+        width: usize,
+        height: usize,
+        range: std::ops::RangeInclusive<Self::Output>,
+    ) -> Self {
+        let mut res = Self::new(width, height);
+        let mut rng = thread_rng();
+        for ixx in 0..width {
+            for ixy in 0..height {
+                let random_value = rng.gen_range(range.clone());
                 Self::set_base_at_index(&mut res.base, width, height, (ixx, ixy), random_value);
             }
         }

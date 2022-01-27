@@ -1,11 +1,12 @@
-use crate::CellType;
-
 use super::vec_matrix::VecMatrix;
+use crate::CellType;
+use std::ops::RangeInclusive;
 
 pub trait Matrix {
     type Output;
     fn new(width: usize, height: usize) -> Self;
     fn new_random(width: usize, height: usize) -> Self;
+    fn new_random_range(width: usize, height: usize, range: RangeInclusive<Self::Output>) -> Self;
     fn new_std_conv_matrix(width: usize, height: usize) -> Self;
     fn index(&self, ix: (usize, usize)) -> Self::Output;
     fn set_at_index(&mut self, ix: (usize, usize), value: Self::Output);

@@ -5,4 +5,5 @@ pub mod traits;
 pub mod vec_matrix;
 
 use crate::rand::gen_range;
+use std::ops::RangeInclusive;
 use traits::*;

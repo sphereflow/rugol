@@ -1,8 +1,6 @@
-use rand::{thread_rng, Rng};
-
-use crate::CellType;
-
 use super::*;
+use crate::CellType;
+use rand::{distributions::Uniform, thread_rng, Rng};
 
 #[derive(Debug, Clone, Copy)]
 pub struct ConstMatrix<T: Copy + Clone, const M: usize, const N: usize> {
@@ -25,6 +23,20 @@ impl<const M: usize, const N: usize> Matrix for ConstMatrix<u8, M, N> {
         for x in 0..M {
             for y in 0..N {
                 data[x][y] = gen_range(0_u8, 2);
+            }
+        }
+        ConstMatrix { data }
+    }
+
+    fn new_random_range(
+        _width: usize,
+        _height: usize,
+        range: RangeInclusive<Self::Output>,
+    ) -> ConstMatrix<u8, M, N> {
+        let mut data = [[0; N]; M];
+        for x in 0..M {
+            for y in 0..N {
+                data[x][y] = gen_range(*range.start(), range.end() + 1);
             }
         }
         ConstMatrix { data }
@@ -71,6 +83,20 @@ impl<const M: usize, const N: usize> Matrix for ConstMatrix<i8, M, N> {
         ConstMatrix { data }
     }
 
+    fn new_random_range(
+        _width: usize,
+        _height: usize,
+        range: RangeInclusive<Self::Output>,
+    ) -> ConstMatrix<i8, M, N> {
+        let mut data = [[0; N]; M];
+        for x in 0..M {
+            for y in 0..N {
+                data[x][y] = gen_range::<i16>(*range.start() as i16, *range.end() as i16 + 1) as i8;
+            }
+        }
+        ConstMatrix { data }
+    }
+
     fn index(&self, (x, y): (usize, usize)) -> Self::Output {
         self.data[x][y]
     }
@@ -109,6 +135,20 @@ impl<const M: usize, const N: usize> Matrix for ConstMatrix<CellType, M, N> {
         for x in 0..M {
             for y in 0..N {
                 data[x][y] = rng.gen();
+            }
+        }
+        ConstMatrix { data }
+    }
+
+    fn new_random_range(
+        _width: usize,
+        _height: usize,
+        range: RangeInclusive<Self::Output>,
+    ) -> Self {
+        let mut data: [[CellType; N]; M] = [[CellType::NoCell; N]; M];
+        for x in 0..M {
+            for y in 0..N {
+                data[x][y] = CellType::random_range(&range);
             }
         }
         ConstMatrix { data }

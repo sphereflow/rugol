@@ -43,6 +43,19 @@ impl Matrix for VecMatrix<u8> {
         }
     }
 
+    fn new_random_range(width: usize, height: usize, range: RangeInclusive<Self::Output>) -> Self {
+        let mut data = Vec::new();
+        let mut rng = thread_rng();
+        for _ in 0..(width * height) {
+            data.push(rng.gen_range(range.clone()));
+        }
+        VecMatrix {
+            data,
+            width,
+            height,
+        }
+    }
+
     fn index(&self, (ixx, ixy): (usize, usize)) -> u8 {
         self.data[ixx + ixy * self.width]
     }
@@ -81,6 +94,22 @@ impl Matrix for VecMatrix<[f32; 4]> {
     }
 
     fn new_random(width: usize, height: usize) -> Self {
+        let mut data = Vec::new();
+        for _ in 0..(width * height) {
+            let mut color = [0.; 4];
+            for rgb in &mut color {
+                *rgb = gen_range::<f32>(0., 1.);
+            }
+            data.push(color);
+        }
+        VecMatrix {
+            data,
+            width,
+            height,
+        }
+    }
+
+    fn new_random_range(width: usize, height: usize, range: RangeInclusive<Self::Output>) -> Self {
         let mut data = Vec::new();
         for _ in 0..(width * height) {
             let mut color = [0.; 4];
@@ -138,6 +167,18 @@ impl Matrix for VecMatrix<CellType> {
         let mut rng = thread_rng();
         for _ in 0..(width * height) {
             data.push(rng.gen());
+        }
+        VecMatrix {
+            data,
+            width,
+            height,
+        }
+    }
+
+    fn new_random_range(width: usize, height: usize, range: RangeInclusive<Self::Output>) -> Self {
+        let mut data = Vec::new();
+        for _ in 0..(width * height) {
+            data.push(CellType::random_range(&range));
         }
         VecMatrix {
             data,

@@ -1,6 +1,7 @@
 use std::iter::repeat;
 
 use macroquad::rand::gen_range;
+use rand::{thread_rng, Rng};
 
 use crate::CellType;
 
@@ -41,6 +42,30 @@ impl Matrix for MatrixPacked {
                     for _ in 0..8 {
                         *tix <<= 8;
                         *tix += gen_range(0_u8, 1) as u64;
+                    }
+                }
+                tiles.push(tile);
+            }
+        }
+        MatrixPacked {
+            tiles,
+            width,
+            height,
+        }
+    }
+
+    fn new_random_range(width: usize, height: usize, range: std::ops::RangeInclusive<Self::Output>) -> Self {
+        let tiles_x = 1 + (width - 1) / 8;
+        let tiles_y = 1 + (height - 1) / 8;
+        let mut tiles = Vec::new();
+        let mut rng = thread_rng();
+        for _ in 0..tiles_x {
+            for _ in 0..tiles_y {
+                let mut tile = [0; 8];
+                for tix in &mut tile {
+                    for _ in 0..8 {
+                        *tix <<= 8;
+                        *tix += rng.gen_range(range.clone()) as u64;
                     }
                 }
                 tiles.push(tile);

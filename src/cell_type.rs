@@ -1,8 +1,11 @@
-use std::{fmt::Display, ops::Index};
+use std::{
+    fmt::Display,
+    ops::{Index, RangeInclusive},
+};
 
 use egui::{emath::Numeric, DragValue, RadioButton, Ui};
 use macroquad::{color_u8, prelude::Color};
-use rand::{distributions::Standard, prelude::Distribution};
+use rand::{distributions::Standard, prelude::Distribution, thread_rng, Rng};
 
 use crate::FieldType;
 
@@ -18,6 +21,7 @@ pub enum CellType {
     G,
     H,
 }
+
 impl Default for CellTypeMap {
     fn default() -> Self {
         Self::new()
@@ -44,6 +48,12 @@ impl Numeric for CellType {
 impl CellType {
     pub fn as_index(&self) -> usize {
         *self as usize
+    }
+
+    pub fn random_range(range: &RangeInclusive<CellType>) -> CellType {
+        let mut rng = thread_rng();
+        Self::try_from(rng.gen_range::<usize, _>(*range.start() as usize..=*range.end() as usize))
+            .expect("CellType::try_from(usize) failed")
     }
 }
 

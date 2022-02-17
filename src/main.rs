@@ -1,5 +1,6 @@
 use cell_type::{CellType, CellTypeMap};
 use egui::Slider;
+use egui::emath::Numeric;
 use egui::{Align, Button, Color32, DragValue, Label, Layout, Rgba, Sense, Separator, Ui, Window};
 use fade::Fader;
 use instant::{Duration, Instant};
@@ -39,6 +40,7 @@ struct RugolState<M: Matrix + Clone, C: Matrix, N: Matrix<Output = [f32; 4]>> {
     paused: bool,
     fader: Fader<N>,
     bfade: bool,
+    randomize_range: RangeInclusive<CellType>,
 }
 
 impl<const CW: usize> RState<CW> {
@@ -76,6 +78,7 @@ impl<const CW: usize> RState<CW> {
             paused: true,
             fader: Fader::new(CELLS[fields_vec_ix].0, CELLS[fields_vec_ix].1),
             bfade: false,
+            randomize_range: CellType::NoCell..=CellType::A,
         }
     }
 
@@ -102,6 +105,19 @@ impl<const CW: usize> RState<CW> {
         self.elapsed = self.tick.elapsed();
     }
 
+    fn randomize(&mut self, range: RangeInclusive<CellType>) {
+        let fields = &mut self.fields_vec[self.vec_ix];
+        let cells = &mut self.cell_type_vec[self.vec_ix];
+        let w = fields.width();
+        let h = fields.height();
+        *cells = VecMatrix::new_random_range(w, h, range);
+        for x in 0..w {
+            for y in 0..h {
+                fields.set_at_index((x, y), self.cell_type_map[cells.index((x, y))].1);
+            }
+        }
+    }
+
     fn get_fields(&self) -> &BaseMatrix<CW> {
         &self.fields_vec[self.vec_ix]
     }
@@ -111,6 +127,18 @@ impl<const CW: usize> RState<CW> {
     }
 
     // Ui stuff
+
+    fn randomize_ui(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            if ui.button("Random").clicked() {
+                self.randomize(CellType::NoCell..=CellType::H);
+            }
+            if ui.button("Random range").clicked() {
+                self.randomize(self.randomize_range.clone());
+            }
+            self.randomize_range = Self::edit_range(ui, self.randomize_range.clone());
+        });
+    }
 
     fn control_ui(&mut self, ui: &mut Ui) {
         if self.paused {
@@ -170,7 +198,7 @@ impl<const CW: usize> RState<CW> {
         }
     }
 
-    fn edit_range(ui: &mut Ui, range: RangeInclusive<FieldType>) -> RangeInclusive<FieldType> {
+    fn edit_range<T: Numeric>(ui: &mut Ui, range: RangeInclusive<T>) -> RangeInclusive<T> {
         let mut start = *range.start();
         let mut end = *range.end();
         ui.horizontal(|ui| {
@@ -270,6 +298,7 @@ async fn main() {
                     #[cfg(target_arch = "wasm32")]
                     ui.label(format!("calc_time: {} ms", gol.elapsed.as_micros()));
                     ui.label(format!("frame_time: {:.1} ms", frame_time));
+                    gol.randomize_ui(ui);
                     gol.control_ui(ui);
                     gol.edit_rules_ui(ui);
                     gol.edit_conv_matrix_ui(ui);

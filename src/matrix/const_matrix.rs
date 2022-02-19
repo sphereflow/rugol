@@ -2,6 +2,8 @@ use super::*;
 use crate::CellType;
 use rand::{thread_rng, Rng};
 
+/// row major array of arrays
+/// N: width, M: height
 #[derive(Debug, Clone, Copy)]
 pub struct ConstMatrix<T: Copy + Clone, const M: usize, const N: usize> {
     pub data: [[T; N]; M],
@@ -20,9 +22,9 @@ impl<const M: usize, const N: usize> Matrix for ConstMatrix<u8, M, N> {
 
     fn new_random(_width: usize, _height: usize) -> ConstMatrix<u8, M, N> {
         let mut data = [[0; N]; M];
-        for x in 0..M {
-            for y in 0..N {
-                data[x][y] = gen_range(0_u8, 2);
+        for y in 0..M {
+            for x in 0..N {
+                data[y][x] = gen_range(0_u8, 2);
             }
         }
         ConstMatrix { data }
@@ -36,7 +38,7 @@ impl<const M: usize, const N: usize> Matrix for ConstMatrix<u8, M, N> {
         let mut data = [[0; N]; M];
         for x in 0..M {
             for y in 0..N {
-                data[x][y] = gen_range(*range.start(), range.end() + 1);
+                data[y][x] = gen_range(*range.start(), range.end() + 1);
             }
         }
         ConstMatrix { data }
@@ -45,19 +47,19 @@ impl<const M: usize, const N: usize> Matrix for ConstMatrix<u8, M, N> {
     type Output = u8;
 
     fn index(&self, (x, y): (usize, usize)) -> Self::Output {
-        self.data[x][y]
+        self.data[y][x]
     }
 
     fn set_at_index(&mut self, (x, y): (usize, usize), value: Self::Output) {
-        self.data[x][y] = value;
+        self.data[y][x] = value;
     }
 
     fn width(&self) -> usize {
-        M
+        N
     }
 
     fn height(&self) -> usize {
-        N
+        M
     }
 }
 
@@ -75,9 +77,9 @@ impl<const M: usize, const N: usize> Matrix for ConstMatrix<i8, M, N> {
 
     fn new_random(_width: usize, _height: usize) -> ConstMatrix<i8, M, N> {
         let mut data = [[0; N]; M];
-        for x in 0..M {
-            for y in 0..N {
-                data[x][y] = gen_range::<i16>(0, 2) as i8;
+        for y in 0..M {
+            for x in 0..N {
+                data[y][x] = gen_range::<i16>(0, 2) as i8;
             }
         }
         ConstMatrix { data }
@@ -89,28 +91,28 @@ impl<const M: usize, const N: usize> Matrix for ConstMatrix<i8, M, N> {
         range: RangeInclusive<Self::Output>,
     ) -> ConstMatrix<i8, M, N> {
         let mut data = [[0; N]; M];
-        for x in 0..M {
-            for y in 0..N {
-                data[x][y] = gen_range::<i16>(*range.start() as i16, *range.end() as i16 + 1) as i8;
+        for y in 0..M {
+            for x in 0..N {
+                data[y][x] = gen_range::<i16>(*range.start() as i16, *range.end() as i16 + 1) as i8;
             }
         }
         ConstMatrix { data }
     }
 
     fn index(&self, (x, y): (usize, usize)) -> Self::Output {
-        self.data[x][y]
+        self.data[y][x]
     }
 
     fn set_at_index(&mut self, (x, y): (usize, usize), value: Self::Output) {
-        self.data[x][y] = value;
+        self.data[y][x] = value;
     }
 
     fn width(&self) -> usize {
-        M
+        N
     }
 
     fn height(&self) -> usize {
-        N
+        M
     }
 }
 
@@ -132,9 +134,9 @@ impl<const M: usize, const N: usize> Matrix for ConstMatrix<CellType, M, N> {
     fn new_random(_width: usize, _height: usize) -> ConstMatrix<CellType, M, N> {
         let mut data: [[CellType; N]; M] = [[CellType::NoCell; N]; M];
         let mut rng = thread_rng();
-        for x in 0..M {
-            for y in 0..N {
-                data[x][y] = rng.gen();
+        for y in 0..M {
+            for x in 0..N {
+                data[y][x] = rng.gen();
             }
         }
         ConstMatrix { data }
@@ -146,27 +148,27 @@ impl<const M: usize, const N: usize> Matrix for ConstMatrix<CellType, M, N> {
         range: RangeInclusive<Self::Output>,
     ) -> Self {
         let mut data: [[CellType; N]; M] = [[CellType::NoCell; N]; M];
-        for x in 0..M {
-            for y in 0..N {
-                data[x][y] = CellType::random_range(&range);
+        for y in 0..M {
+            for x in 0..N {
+                data[y][x] = CellType::random_range(&range);
             }
         }
         ConstMatrix { data }
     }
 
     fn index(&self, (x, y): (usize, usize)) -> Self::Output {
-        self.data[x][y]
+        self.data[y][x]
     }
 
     fn set_at_index(&mut self, (x, y): (usize, usize), value: Self::Output) {
-        self.data[x][y] = value;
+        self.data[y][x] = value;
     }
 
     fn width(&self) -> usize {
-        M
+        N
     }
 
     fn height(&self) -> usize {
-        N
+        M
     }
 }

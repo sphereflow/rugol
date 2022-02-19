@@ -241,9 +241,9 @@ impl<const CW: usize> RState<CW> {
             ui.collapsing(format!("Convolution Matrix: {}", cix), |ui| {
                 ui.horizontal(|ui| {
                     ui.vertical(|ui| {
-                        for x in 0..conv_matrix.width() {
+                        for y in 0..conv_matrix.height() {
                             ui.horizontal(|ui| {
-                                for y in 0..conv_matrix.height() {
+                                for x in 0..conv_matrix.width() {
                                     let val = conv_matrix.index((x, y));
                                     //ui.add(DragValue::new(&mut val));
                                     let text_col;
@@ -279,9 +279,9 @@ impl<const CW: usize> RState<CW> {
                         }
                     });
                     ui.vertical(|ui| {
-                        for x in 0..conv_matrix.width() {
+                        for y in 0..conv_matrix.height() {
                             ui.horizontal(|ui| {
-                                for y in 0..conv_matrix.height() {
+                                for x in 0..conv_matrix.width() {
                                     let mut val = conv_matrix.index((x, y));
                                     ui.add(DragValue::new(&mut val));
                                     conv_matrix.set_at_index((x, y), val);

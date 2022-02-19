@@ -1,6 +1,6 @@
 use cell_type::{CellType, CellTypeMap};
-use egui::Slider;
 use egui::emath::Numeric;
+use egui::Slider;
 use egui::{Align, Button, Color32, DragValue, Label, Layout, Rgba, Sense, Separator, Ui, Window};
 use fade::Fader;
 use instant::{Duration, Instant};
@@ -41,6 +41,7 @@ struct RugolState<M: Matrix + Clone, C: Matrix, N: Matrix<Output = [f32; 4]>> {
     fader: Fader<N>,
     bfade: bool,
     randomize_range: RangeInclusive<CellType>,
+    clear_val: CellType,
 }
 
 impl<const CW: usize> RState<CW> {
@@ -79,6 +80,7 @@ impl<const CW: usize> RState<CW> {
             fader: Fader::new(CELLS[fields_vec_ix].0, CELLS[fields_vec_ix].1),
             bfade: false,
             randomize_range: CellType::NoCell..=CellType::A,
+            clear_val: CellType::NoCell,
         }
     }
 
@@ -118,6 +120,20 @@ impl<const CW: usize> RState<CW> {
         }
     }
 
+    fn clear(&mut self) {
+        let fields = &mut self.fields_vec[self.vec_ix];
+        let cells = &mut self.cell_type_vec[self.vec_ix];
+        let w = fields.width();
+        let h = fields.height();
+        let field_value = self.cell_type_map[self.clear_val].1;
+        for x in 0..w {
+            for y in 0..h {
+                cells.set_at_index((x, y), self.clear_val);
+                fields.set_at_index((x, y), field_value);
+            }
+        }
+    }
+
     fn get_fields(&self) -> &BaseMatrix<CW> {
         &self.fields_vec[self.vec_ix]
     }
@@ -137,6 +153,16 @@ impl<const CW: usize> RState<CW> {
                 self.randomize(self.randomize_range.clone());
             }
             self.randomize_range = Self::edit_range(ui, self.randomize_range.clone());
+        });
+    }
+
+    fn clear_ui(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            if ui.button("clear").clicked() {
+                self.clear();
+            }
+            ui.label("clear value:");
+            ui.add(DragValue::new(&mut self.clear_val));
         });
     }
 
@@ -298,6 +324,7 @@ async fn main() {
                     #[cfg(target_arch = "wasm32")]
                     ui.label(format!("calc_time: {} ms", gol.elapsed.as_micros()));
                     ui.label(format!("frame_time: {:.1} ms", frame_time));
+                    gol.clear_ui(ui);
                     gol.randomize_ui(ui);
                     gol.control_ui(ui);
                     gol.edit_rules_ui(ui);

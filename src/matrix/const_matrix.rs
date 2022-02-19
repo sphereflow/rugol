@@ -1,6 +1,6 @@
 use super::*;
 use crate::CellType;
-use rand::{distributions::Uniform, thread_rng, Rng};
+use rand::{thread_rng, Rng};
 
 #[derive(Debug, Clone, Copy)]
 pub struct ConstMatrix<T: Copy + Clone, const M: usize, const N: usize> {

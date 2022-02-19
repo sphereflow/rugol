@@ -109,7 +109,7 @@ impl Matrix for VecMatrix<[f32; 4]> {
         }
     }
 
-    fn new_random_range(width: usize, height: usize, range: RangeInclusive<Self::Output>) -> Self {
+    fn new_random_range(width: usize, height: usize, _range: RangeInclusive<Self::Output>) -> Self {
         let mut data = Vec::new();
         for _ in 0..(width * height) {
             let mut color = [0.; 4];

@@ -54,7 +54,11 @@ impl Matrix for MatrixPacked {
         }
     }
 
-    fn new_random_range(width: usize, height: usize, range: std::ops::RangeInclusive<Self::Output>) -> Self {
+    fn new_random_range(
+        width: usize,
+        height: usize,
+        range: std::ops::RangeInclusive<Self::Output>,
+    ) -> Self {
         let tiles_x = 1 + (width - 1) / 8;
         let tiles_y = 1 + (height - 1) / 8;
         let mut tiles = Vec::new();

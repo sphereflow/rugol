@@ -1,7 +1,7 @@
 use cell_type::{CellType, CellTypeMap};
 use egui::emath::Numeric;
-use egui::Slider;
 use egui::{Align, Button, Color32, DragValue, Label, Layout, Rgba, Sense, Separator, Ui, Window};
+use egui::{RadioButton, Slider};
 use fade::Fader;
 use instant::{Duration, Instant};
 use macroquad::prelude::*;
@@ -42,6 +42,8 @@ struct RugolState<M: Matrix + Clone, C: Matrix, N: Matrix<Output = [f32; 4]>> {
     bfade: bool,
     randomize_range: RangeInclusive<CellType>,
     clear_val: CellType,
+    sym_editting: bool,
+    symmetry: Symmetry,
 }
 
 impl<const CW: usize> RState<CW> {
@@ -81,6 +83,8 @@ impl<const CW: usize> RState<CW> {
             bfade: false,
             randomize_range: CellType::NoCell..=CellType::A,
             clear_val: CellType::NoCell,
+            sym_editting: false,
+            symmetry: Symmetry::XY,
         }
     }
 
@@ -120,18 +124,18 @@ impl<const CW: usize> RState<CW> {
         }
     }
 
+    fn donut_all_kernels(&mut self, range: RangeInclusive<usize>, val: FieldType) {
+        for kernel in self.conv_kernels.iter_mut() {
+            kernel.donut(range.clone(), val);
+        }
+    }
+
     fn clear(&mut self) {
         let fields = &mut self.fields_vec[self.vec_ix];
         let cells = &mut self.cell_type_vec[self.vec_ix];
-        let w = fields.width();
-        let h = fields.height();
         let field_value = self.cell_type_map[self.clear_val].1;
-        for x in 0..w {
-            for y in 0..h {
-                cells.set_at_index((x, y), self.clear_val);
-                fields.set_at_index((x, y), field_value);
-            }
-        }
+        cells.clear(self.clear_val);
+        fields.clear(field_value);
     }
 
     fn get_fields(&self) -> &BaseMatrix<CW> {
@@ -237,6 +241,9 @@ impl<const CW: usize> RState<CW> {
     }
 
     fn edit_conv_matrix_ui(&mut self, ui: &mut Ui) {
+        let kernel_len = self.conv_kernels.len();
+        let mut copy_indices = None;
+        let mut copy_to_all = None;
         for (cix, conv_matrix) in self.conv_kernels.iter_mut().enumerate() {
             ui.collapsing(format!("Convolution Matrix: {}", cix), |ui| {
                 ui.horizontal(|ui| {
@@ -269,10 +276,18 @@ impl<const CW: usize> RState<CW> {
                                         )
                                         .dragged()
                                     {
-                                        conv_matrix.set_at_index(
-                                            (x, y),
-                                            self.cell_type_map.get_selected_rules_val(),
-                                        );
+                                        if self.sym_editting {
+                                            conv_matrix.set_at_index_sym(
+                                                self.symmetry,
+                                                (x, y),
+                                                self.cell_type_map.get_selected_rules_val(),
+                                            )
+                                        } else {
+                                            conv_matrix.set_at_index(
+                                                (x, y),
+                                                self.cell_type_map.get_selected_rules_val(),
+                                            );
+                                        }
                                     }
                                 }
                             });
@@ -289,8 +304,48 @@ impl<const CW: usize> RState<CW> {
                             });
                         }
                     });
+                    if cix > 0 {
+                        if ui.button("▲").clicked() {
+                            copy_indices = Some((cix, cix - 1));
+                        }
+                    }
+                    if cix < (kernel_len - 1) {
+                        if ui.button("⯆").clicked() {
+                            copy_indices = Some((cix, cix + 1));
+                        }
+                    }
+                    if ui.button("copy to all").clicked() {
+                        copy_to_all = Some(cix);
+                    }
                 });
             });
+        }
+        if let Some((from, to)) = copy_indices {
+            self.conv_kernels[to] = self.conv_kernels[from];
+        }
+        if let Some(from) = copy_to_all {
+            let from_kernel = self.conv_kernels[from];
+            for kernel in self.conv_kernels.iter_mut() {
+                *kernel = from_kernel;
+            }
+        }
+    }
+
+    fn edit_symmetry(&mut self, ui: &mut Ui) {
+        let symmetries = [
+            Symmetry::X,
+            Symmetry::Y,
+            Symmetry::XY,
+            Symmetry::ROT90,
+            Symmetry::ROT180,
+        ];
+        for sym in symmetries {
+            if ui
+                .add(RadioButton::new(sym == self.symmetry, format!("{:?}", sym)))
+                .clicked()
+            {
+                self.symmetry = sym;
+            }
         }
     }
 }
@@ -298,6 +353,7 @@ impl<const CW: usize> RState<CW> {
 #[macroquad::main("Rugol")]
 async fn main() {
     let mut gol = <RState<5>>::new();
+    gol.donut_all_kernels(0..=0, 0);
     let mut mode = UiMode::Warn;
     let mut inst;
     let mut frame_time = 0.;
@@ -342,6 +398,10 @@ async fn main() {
                     }
                     ui.checkbox(&mut gol.bfade, "fade");
                     ui.add(Slider::new(&mut gol.fader.mix_factor, 0.0..=1.0).text("Fader: mix_factor"));
+                    ui.checkbox(&mut gol.sym_editting, "symmetric editting");
+                    if gol.sym_editting {
+                        gol.edit_symmetry(ui);
+                    }
                     if ui.button("<-- back").clicked() {
                         mode = UiMode::Main;
                     }

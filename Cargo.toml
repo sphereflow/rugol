@@ -7,8 +7,8 @@ edition = "2021"
 
 [dependencies]
 macroquad = "0.3"
-egui-macroquad = "0.7"
-egui = "0.15"
+egui-macroquad = "0.8"
+egui = "0.16"
 rand = "0.8"
 instant = "0.1"
 getrandom = { version = "0.2", features = ["js"] }

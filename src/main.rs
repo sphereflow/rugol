@@ -1,7 +1,7 @@
 use cell_type::{CellType, CellTypeMap};
 use egui::emath::Numeric;
 use egui::{Align, Button, Color32, DragValue, Label, Layout, Rgba, Sense, Separator, Ui, Window};
-use egui::{RadioButton, Slider};
+use egui::{RadioButton, RichText, Slider};
 use fade::Fader;
 use instant::{Duration, Instant};
 use macroquad::prelude::*;
@@ -35,20 +35,40 @@ struct RugolState<M: Matrix + Clone, C: Matrix, N: Matrix<Output = [f32; 4]>> {
     cell_type_vec: Vec<VecMatrix<CellType>>,
     /// Index to `fields_vec` and `cell_type_vec`
     vec_ix: usize,
+    fader: Fader<N>,
+    config: AppConfig,
+}
+
+struct AppConfig {
     tick: Instant,
     elapsed: Duration,
     paused: bool,
-    fader: Fader<N>,
     bfade: bool,
     randomize_range: RangeInclusive<CellType>,
     clear_val: CellType,
     sym_editting: bool,
     symmetry: Symmetry,
+    cell_size_factor: f32,
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        AppConfig {
+            tick: Instant::now(),
+            elapsed: Duration::new(0, 0),
+            paused: true,
+            bfade: false,
+            randomize_range: CellType::NoCell..=CellType::A,
+            clear_val: CellType::NoCell,
+            sym_editting: false,
+            symmetry: Symmetry::XY,
+            cell_size_factor: 1.2,
+        }
+    }
 }
 
 impl<const CW: usize> RState<CW> {
     fn new() -> Self {
-        let tick = Instant::now();
         let conv_matrix = ConstMatrix::new_std_conv_matrix(3, 3);
         let cell_type_map = CellTypeMap::new();
         let fields_vec_ix = 0;
@@ -76,20 +96,13 @@ impl<const CW: usize> RState<CW> {
             fields_vec,
             cell_type_vec,
             vec_ix: fields_vec_ix,
-            tick,
-            elapsed: Duration::new(0, 0),
-            paused: true,
             fader: Fader::new(CELLS[fields_vec_ix].0, CELLS[fields_vec_ix].1),
-            bfade: false,
-            randomize_range: CellType::NoCell..=CellType::A,
-            clear_val: CellType::NoCell,
-            sym_editting: false,
-            symmetry: Symmetry::XY,
+            config: AppConfig::default(),
         }
     }
 
     fn step(&mut self) {
-        self.tick = Instant::now();
+        self.config.tick = Instant::now();
         let field_type_matrix = &mut self.fields_vec[self.vec_ix];
         let cell_type_matrix = &mut self.cell_type_vec[self.vec_ix];
         field_type_matrix.convolution(&self.conv_kernels, cell_type_matrix);
@@ -108,7 +121,7 @@ impl<const CW: usize> RState<CW> {
         }
         self.fader
             .add(&self.cell_type_vec[self.vec_ix], &self.cell_type_map);
-        self.elapsed = self.tick.elapsed();
+        self.config.elapsed = self.config.tick.elapsed();
     }
 
     fn randomize(&mut self, range: RangeInclusive<CellType>) {
@@ -133,8 +146,8 @@ impl<const CW: usize> RState<CW> {
     fn clear(&mut self) {
         let fields = &mut self.fields_vec[self.vec_ix];
         let cells = &mut self.cell_type_vec[self.vec_ix];
-        let field_value = self.cell_type_map[self.clear_val].1;
-        cells.clear(self.clear_val);
+        let field_value = self.cell_type_map[self.config.clear_val].1;
+        cells.clear(self.config.clear_val);
         fields.clear(field_value);
     }
 
@@ -154,9 +167,9 @@ impl<const CW: usize> RState<CW> {
                 self.randomize(CellType::NoCell..=CellType::H);
             }
             if ui.button("Random range").clicked() {
-                self.randomize(self.randomize_range.clone());
+                self.randomize(self.config.randomize_range.clone());
             }
-            self.randomize_range = Self::edit_range(ui, self.randomize_range.clone());
+            self.config.randomize_range = Self::edit_range(ui, self.config.randomize_range.clone());
         });
     }
 
@@ -166,22 +179,22 @@ impl<const CW: usize> RState<CW> {
                 self.clear();
             }
             ui.label("clear value:");
-            ui.add(DragValue::new(&mut self.clear_val));
+            ui.add(DragValue::new(&mut self.config.clear_val));
         });
     }
 
     fn control_ui(&mut self, ui: &mut Ui) {
-        if self.paused {
+        if self.config.paused {
             ui.horizontal(|ui| {
                 if ui.button("▶").clicked() {
-                    self.paused = false;
+                    self.config.paused = false;
                 }
                 if ui.button("›").clicked() {
                     self.step();
                 }
             });
         } else if ui.button("⏸").clicked() {
-            self.paused = true;
+            self.config.paused = true;
         }
     }
 
@@ -265,20 +278,22 @@ impl<const CW: usize> RState<CW> {
                                     }
                                     if ui
                                         .add(
-                                            Label::new(format!("{}", val))
-                                                .text_color(text_col)
-                                                .strong()
-                                                .heading()
-                                                .background_color(Rgba::from_rgb(
-                                                    col.r, col.g, col.b,
-                                                ))
-                                                .sense(Sense::click_and_drag()),
+                                            Label::new(
+                                                RichText::new(format!("{}", val))
+                                                    .color(text_col)
+                                                    .strong()
+                                                    .heading()
+                                                    .background_color(Rgba::from_rgb(
+                                                        col.r, col.g, col.b,
+                                                    )),
+                                            )
+                                            .sense(Sense::click_and_drag()),
                                         )
                                         .dragged()
                                     {
-                                        if self.sym_editting {
+                                        if self.config.sym_editting {
                                             conv_matrix.set_at_index_sym(
-                                                self.symmetry,
+                                                self.config.symmetry,
                                                 (x, y),
                                                 self.cell_type_map.get_selected_rules_val(),
                                             )
@@ -341,10 +356,13 @@ impl<const CW: usize> RState<CW> {
         ];
         for sym in symmetries {
             if ui
-                .add(RadioButton::new(sym == self.symmetry, format!("{:?}", sym)))
+                .add(RadioButton::new(
+                    sym == self.config.symmetry,
+                    format!("{:?}", sym),
+                ))
                 .clicked()
             {
-                self.symmetry = sym;
+                self.config.symmetry = sym;
             }
         }
     }
@@ -352,7 +370,7 @@ impl<const CW: usize> RState<CW> {
 
 #[macroquad::main("Rugol")]
 async fn main() {
-    let mut gol = <RState<5>>::new();
+    let mut gol = <RState<7>>::new();
     gol.donut_all_kernels(0..=0, 0);
     let mut mode = UiMode::Warn;
     let mut inst;
@@ -365,7 +383,7 @@ async fn main() {
             Window::new("Rugol").show(ctx, |ui| match mode {
                 UiMode::Warn => {
                     ui.with_layout(Layout::top_down_justified(Align::Center), |ui| {
-                        ui.add(Label::new("Warning: Depending on the settings this program may produce bright flashing and/or pulsating images").heading().strong());
+                        ui.add(Label::new(RichText::new("Warning: Depending on the settings this program may produce bright flashing and/or pulsating images").heading().strong()));
                         if ui.button("continue").clicked() {
                             mode = UiMode::Main;
                         }
@@ -375,7 +393,7 @@ async fn main() {
                     #[cfg(not(target_arch = "wasm32"))]
                     ui.label(format!(
                         "calc_time: {:.1} ms",
-                        (gol.elapsed.as_micros() as f64) * 0.001
+                        (gol.config.elapsed.as_micros() as f64) * 0.001
                     ));
                     #[cfg(target_arch = "wasm32")]
                     ui.label(format!("calc_time: {} ms", gol.elapsed.as_micros()));
@@ -396,10 +414,10 @@ async fn main() {
                                 gol.fader = Fader::new(*w, *h);
                             }
                     }
-                    ui.checkbox(&mut gol.bfade, "fade");
+                    ui.checkbox(&mut gol.config.bfade, "fade");
                     ui.add(Slider::new(&mut gol.fader.mix_factor, 0.0..=1.0).text("Fader: mix_factor"));
-                    ui.checkbox(&mut gol.sym_editting, "symmetric editting");
-                    if gol.sym_editting {
+                    ui.checkbox(&mut gol.config.sym_editting, "symmetric editting");
+                    if gol.config.sym_editting {
                         gol.edit_symmetry(ui);
                     }
                     if ui.button("<-- back").clicked() {
@@ -409,7 +427,7 @@ async fn main() {
             });
         });
 
-        if !gol.paused {
+        if !gol.config.paused {
             gol.step();
         }
 
@@ -420,6 +438,8 @@ async fn main() {
                 let y = (ixy as f32 * screen_height()) / (gol.get_fields().height() as f32);
                 let w = screen_width() / (gol.get_fields().width() as f32);
                 let h = screen_height() / (gol.get_fields().height() as f32);
+                let w = w * gol.config.cell_size_factor;
+                let h = h * gol.config.cell_size_factor;
 
                 // handle drawing with the mouse pointer on the screen
                 let mouse_pos = mouse_position();
@@ -433,7 +453,7 @@ async fn main() {
                     gol.cell_type_vec[gol.vec_ix].set_at_index((ixx, ixy), cell);
                 }
 
-                if gol.bfade {
+                if gol.config.bfade {
                     draw_rectangle(x, y, w, h, gol.fader.index(ixx, ixy));
                 } else {
                     draw_rectangle(

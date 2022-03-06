@@ -22,12 +22,6 @@ pub enum CellType {
     H,
 }
 
-impl Default for CellTypeMap {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Numeric for CellType {
     const MIN: Self = CellType::NoCell;
     const MAX: Self = CellType::H;
@@ -113,6 +107,12 @@ pub struct CellTypeMap {
     map: Vec<(Color, FieldType)>,
     selected_idx: usize,
     default: (Color, FieldType),
+}
+
+impl Default for CellTypeMap {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl CellTypeMap {

@@ -2,7 +2,7 @@
 (Ru)st (g)ame (o)f (l)ife
 Rugol is a program to simulate and interact with many types of cellular automata.
 One goal was to be able to run it in a browsers as well as natively.
-You can try it out [here](sphereflow.github.io/rugol.html) 
+You can try it out [here](https://sphereflow.github.io/rugol.html) 
 
 ## How it works
 

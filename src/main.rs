@@ -396,7 +396,7 @@ async fn main() {
                         (gol.config.elapsed.as_micros() as f64) * 0.001
                     ));
                     #[cfg(target_arch = "wasm32")]
-                    ui.label(format!("calc_time: {} ms", gol.elapsed.as_micros()));
+                    ui.label(format!("calc_time: {} ms", gol.config.elapsed.as_micros()));
                     ui.label(format!("frame_time: {:.1} ms", frame_time));
                     gol.clear_ui(ui);
                     gol.randomize_ui(ui);

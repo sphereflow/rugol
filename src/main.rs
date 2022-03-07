@@ -62,7 +62,7 @@ impl Default for AppConfig {
             clear_val: CellType::NoCell,
             sym_editting: false,
             symmetry: Symmetry::XY,
-            cell_size_factor: 1.2,
+            cell_size_factor: 1.0,
         }
     }
 }
@@ -420,6 +420,7 @@ async fn main() {
                     if gol.config.sym_editting {
                         gol.edit_symmetry(ui);
                     }
+                    ui.add(Slider::new(&mut gol.config.cell_size_factor, 0.1..=3.0).text("cell size"));
                     if ui.button("<-- back").clicked() {
                         mode = UiMode::Main;
                     }
@@ -438,8 +439,13 @@ async fn main() {
                 let y = (ixy as f32 * screen_height()) / (gol.get_fields().height() as f32);
                 let w = screen_width() / (gol.get_fields().width() as f32);
                 let h = screen_height() / (gol.get_fields().height() as f32);
-                let w = w * gol.config.cell_size_factor;
-                let h = h * gol.config.cell_size_factor;
+                let f = gol.config.cell_size_factor;
+                let x_adjust = 0.5 * w * (1.0 - f);
+                let y_adjust = 0.5 * h * (1.0 - f);
+                let x = x + x_adjust;
+                let y = y + y_adjust;
+                let w = w * f;
+                let h = h * f;
 
                 // handle drawing with the mouse pointer on the screen
                 let mouse_pos = mouse_position();

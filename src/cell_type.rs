@@ -191,11 +191,12 @@ impl CellTypeMap {
                         selected_idx = idx;
                     }
                     let map = self.get_map_mut();
-                    let mut edit_color = [map[idx].0.r, map[idx].0.g, map[idx].0.b];
-                    if ui.color_edit_button_rgb(&mut edit_color).changed() {
+                    let mut edit_color = [map[idx].0.r, map[idx].0.g, map[idx].0.b, map[idx].0.a];
+                    if ui.color_edit_button_rgba_unmultiplied(&mut edit_color).changed() {
                         map[idx].0.r = edit_color[0];
                         map[idx].0.g = edit_color[1];
                         map[idx].0.b = edit_color[2];
+                        map[idx].0.a = edit_color[3];
                     }
                     ui.horizontal(|ui| {
                         ui.label("value:");

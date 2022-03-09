@@ -1,6 +1,5 @@
 use super::*;
 use crate::CellType;
-use rand::{thread_rng, Rng};
 
 /// row major array of arrays
 /// N: width, M: height
@@ -133,10 +132,9 @@ impl<const M: usize, const N: usize> Matrix for ConstMatrix<CellType, M, N> {
 
     fn new_random(_width: usize, _height: usize) -> ConstMatrix<CellType, M, N> {
         let mut data: [[CellType; N]; M] = [[CellType::NoCell; N]; M];
-        let mut rng = thread_rng();
         for y in 0..M {
             for x in 0..N {
-                data[y][x] = rng.gen();
+                data[y][x] = gen_range(CellType::NoCell, CellType::H);
             }
         }
         ConstMatrix { data }

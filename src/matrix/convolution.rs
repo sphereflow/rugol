@@ -1,7 +1,6 @@
 use std::iter::repeat;
 
 use macroquad::rand::gen_range;
-use rand::{thread_rng, Rng};
 
 use crate::CellType;
 
@@ -118,10 +117,9 @@ impl<const KW: usize> Matrix for Convolution<u8, KW> {
         range: std::ops::RangeInclusive<Self::Output>,
     ) -> Self {
         let mut res = Self::new(width, height);
-        let mut rng = thread_rng();
         for ixx in 0..width {
             for ixy in 0..height {
-                let random_value = rng.gen_range(range.clone());
+                let random_value = gen_range(*range.start(), *range.end());
                 Self::set_base_at_index(&mut res.base, width, height, (ixx, ixy), random_value);
             }
         }
@@ -186,10 +184,9 @@ impl<const KW: usize> Matrix for Convolution<i8, KW> {
         range: std::ops::RangeInclusive<Self::Output>,
     ) -> Self {
         let mut res = Self::new(width, height);
-        let mut rng = thread_rng();
         for ixx in 0..width {
             for ixy in 0..height {
-                let random_value = rng.gen_range(range.clone());
+                let random_value = gen_range(*range.start() as i32, *range.end() as i32) as i8;
                 Self::set_base_at_index(&mut res.base, width, height, (ixx, ixy), random_value);
             }
         }

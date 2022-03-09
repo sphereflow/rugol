@@ -1,6 +1,4 @@
 use crate::CellType;
-use ::rand::thread_rng;
-use ::rand::Rng;
 
 use super::*;
 
@@ -45,9 +43,8 @@ impl Matrix for VecMatrix<u8> {
 
     fn new_random_range(width: usize, height: usize, range: RangeInclusive<Self::Output>) -> Self {
         let mut data = Vec::new();
-        let mut rng = thread_rng();
         for _ in 0..(width * height) {
-            data.push(rng.gen_range(range.clone()));
+            data.push(gen_range(*range.start(), *range.end()));
         }
         VecMatrix {
             data,
@@ -164,9 +161,8 @@ impl Matrix for VecMatrix<CellType> {
 
     fn new_random(width: usize, height: usize) -> Self {
         let mut data = Vec::new();
-        let mut rng = thread_rng();
         for _ in 0..(width * height) {
-            data.push(rng.gen());
+            data.push(gen_range(CellType::NoCell, CellType::H));
         }
         VecMatrix {
             data,

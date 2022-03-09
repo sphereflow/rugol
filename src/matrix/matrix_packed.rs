@@ -1,14 +1,10 @@
-use std::iter::repeat;
-
-use macroquad::rand::gen_range;
-use rand::{thread_rng, Rng};
-
-use crate::CellType;
-
 use super::{
     traits::{ConvolutionT, Matrix},
     vec_matrix::VecMatrix,
 };
+use crate::CellType;
+use macroquad::rand::gen_range;
+use std::iter::repeat;
 
 #[derive(Clone, Debug)]
 pub struct MatrixPacked {
@@ -62,14 +58,13 @@ impl Matrix for MatrixPacked {
         let tiles_x = 1 + (width - 1) / 8;
         let tiles_y = 1 + (height - 1) / 8;
         let mut tiles = Vec::new();
-        let mut rng = thread_rng();
         for _ in 0..tiles_x {
             for _ in 0..tiles_y {
                 let mut tile = [0; 8];
                 for tix in &mut tile {
                     for _ in 0..8 {
                         *tix <<= 8;
-                        *tix += rng.gen_range(range.clone()) as u64;
+                        *tix += gen_range(*range.start(), *range.end()) as u64;
                     }
                 }
                 tiles.push(tile);

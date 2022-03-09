@@ -4,8 +4,9 @@ use std::{
 };
 
 use egui::{emath::Numeric, DragValue, RadioButton, Ui};
+use macroquad::rand::gen_range;
+use macroquad::rand::RandomRange;
 use macroquad::{color_u8, prelude::Color};
-use rand::{distributions::Standard, prelude::Distribution, thread_rng, Rng};
 
 use crate::FieldType;
 
@@ -45,9 +46,11 @@ impl CellType {
     }
 
     pub fn random_range(range: &RangeInclusive<CellType>) -> CellType {
-        let mut rng = thread_rng();
-        Self::try_from(rng.gen_range::<usize, _>(*range.start() as usize..=*range.end() as usize))
-            .expect("CellType::try_from(usize) failed")
+        Self::try_from(gen_range::<usize>(
+            *range.start() as usize,
+            *range.end() as usize + 1,
+        ))
+        .expect("CellType::try_from(usize) failed")
     }
 }
 
@@ -85,21 +88,9 @@ impl Display for CellType {
     }
 }
 
-impl Distribution<CellType> for Standard {
-    fn sample<R: ::rand::Rng + ?Sized>(&self, rng: &mut R) -> CellType {
-        let s: u8 = rng.gen::<u8>() % 9;
-        match s {
-            0 => CellType::A,
-            1 => CellType::B,
-            2 => CellType::C,
-            3 => CellType::D,
-            4 => CellType::E,
-            5 => CellType::F,
-            6 => CellType::G,
-            7 => CellType::H,
-            8 => CellType::NoCell,
-            _ => unreachable!(),
-        }
+impl RandomRange for CellType {
+    fn gen_range(low: Self, high: Self) -> Self {
+        Self::random_range(&(low..=high))
     }
 }
 
@@ -192,7 +183,10 @@ impl CellTypeMap {
                     }
                     let map = self.get_map_mut();
                     let mut edit_color = [map[idx].0.r, map[idx].0.g, map[idx].0.b, map[idx].0.a];
-                    if ui.color_edit_button_rgba_unmultiplied(&mut edit_color).changed() {
+                    if ui
+                        .color_edit_button_rgba_unmultiplied(&mut edit_color)
+                        .changed()
+                    {
                         map[idx].0.r = edit_color[0];
                         map[idx].0.g = edit_color[1];
                         map[idx].0.b = edit_color[2];

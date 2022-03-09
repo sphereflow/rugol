@@ -431,6 +431,9 @@ async fn main() {
                 UiMode::Help => {
                     ui.label("A description of how Rugol works can be found in the following link:");
                     ui.hyperlink("https://github.com/sphereflow/rugol#how-it-works");
+                    if ui.button("<-- back").clicked() {
+                        mode = UiMode::Main;
+                    }
                 }
             });
         });

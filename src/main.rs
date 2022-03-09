@@ -62,7 +62,7 @@ impl Default for AppConfig {
             clear_val: CellType::NoCell,
             sym_editting: false,
             symmetry: Symmetry::XY,
-            cell_size_factor: 1.0,
+            cell_size_factor: 0.9,
         }
     }
 }

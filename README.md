@@ -14,7 +14,7 @@ A value can be of any type.
 There are 9 CellTypes: NoCell and CellType A to H.  
 Each CellType has its own color, value of type: FieldType and convolution kernel,  
 which are all edittable through the ui.  
-There is a CellType matrix which is used to display the game state as well as  
+There is a CellType matrix which is used to display the game state.  
 
 
 ### FieldType
@@ -27,6 +27,7 @@ Currently there are only 2 FieldType's implemented:
 ### Convolution kernel
 A convolution kernel is a matrix which contains FieldType values.  
 Each CellType has its own convolution kernel.  
+There is also an option to use a single kernel for all CellType's.
 The kernel is used to calculate the accumulated value.  
 The following procedure is executed for every cell in the CellType matrix.  
 First a kernel is selected according to the CellType.  

@@ -18,7 +18,12 @@ pub struct Convolution<T: Copy + Clone, const KW: usize> {
 }
 
 impl<Conv: Matrix<Output = u8>, const KW: usize> ConvolutionT<Conv, u8> for Convolution<u8, KW> {
-    fn convolution(&mut self, kernels: &[Conv], cell_type_matrix: &VecMatrix<CellType>) {
+    fn convolution(
+        &mut self,
+        kernels: &[Conv],
+        single_kernel: bool,
+        cell_type_matrix: &VecMatrix<CellType>,
+    ) {
         let mut new_base: Vec<Vec<u8>> = Vec::from_iter(
             repeat(Vec::from_iter(repeat(0).take(KW.pow(2)))).take(self.width * self.height),
         );
@@ -28,7 +33,11 @@ impl<Conv: Matrix<Output = u8>, const KW: usize> ConvolutionT<Conv, u8> for Conv
             let kernel_ix = cell_type_matrix.index((ixx, ixy)).as_index();
             for kixx in 0..KW {
                 for kixy in 0..KW {
-                    acc += slice[kixy * KW + kixx] * kernels[kernel_ix].index((kixx, kixy));
+                    if single_kernel {
+                        acc += slice[kixy * KW + kixx] * kernels[0].index((kixx, kixy));
+                    } else {
+                        acc += slice[kixy * KW + kixx] * kernels[kernel_ix].index((kixx, kixy));
+                    }
                 }
             }
             Self::set_base_at_index(&mut new_base, self.width, self.height, (ixx, ixy), acc);
@@ -38,7 +47,12 @@ impl<Conv: Matrix<Output = u8>, const KW: usize> ConvolutionT<Conv, u8> for Conv
 }
 
 impl<Conv: Matrix<Output = i8>, const KW: usize> ConvolutionT<Conv, i8> for Convolution<i8, KW> {
-    fn convolution(&mut self, kernels: &[Conv], cell_type_matrix: &VecMatrix<CellType>) {
+    fn convolution(
+        &mut self,
+        kernels: &[Conv],
+        single_kernel: bool,
+        cell_type_matrix: &VecMatrix<CellType>,
+    ) {
         // 0 initialize
         let mut new_base: Vec<Vec<i8>> = Vec::from_iter(
             repeat(Vec::from_iter(repeat(0).take(KW.pow(2)))).take(self.width * self.height),
@@ -49,7 +63,11 @@ impl<Conv: Matrix<Output = i8>, const KW: usize> ConvolutionT<Conv, i8> for Conv
             let kernel_ix = cell_type_matrix.index((ixx, ixy)).as_index();
             for kixx in 0..KW {
                 for kixy in 0..KW {
-                    acc += slice[kixy * KW + kixx] * kernels[kernel_ix].index((kixx, kixy));
+                    if single_kernel {
+                        acc += slice[kixy * KW + kixx] * kernels[0].index((kixx, kixy));
+                    } else {
+                        acc += slice[kixy * KW + kixx] * kernels[kernel_ix].index((kixx, kixy));
+                    }
                 }
             }
             Self::set_base_at_index(&mut new_base, self.width, self.height, (ixx, ixy), acc);

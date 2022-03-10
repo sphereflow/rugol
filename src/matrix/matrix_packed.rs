@@ -135,7 +135,12 @@ impl Matrix for MatrixPacked {
 // E = element
 // * = ix_cut{x/y}
 impl<Conv: Matrix<Output = u8>> ConvolutionT<Conv, u8> for MatrixPacked {
-    fn convolution(&mut self, kernels: &[Conv], cell_type_matrix: &VecMatrix<CellType>) {
+    fn convolution(
+        &mut self,
+        kernels: &[Conv],
+        single_kernel: bool,
+        cell_type_matrix: &VecMatrix<CellType>,
+    ) {
         let kernel_width = kernels[0].width();
         let fields_old = self.clone();
         for ixy in 0..self.height {
@@ -151,8 +156,13 @@ impl<Conv: Matrix<Output = u8>> ConvolutionT<Conv, u8> for MatrixPacked {
                         ..(cut_y + kernel_width as i32).min(self.height as i32))
                         .enumerate()
                     {
-                        acc += kernels[kernel_ix].index((conv_x, conv_y))
-                            * fields_old.index((ix_cut_x as usize, ix_cut_y as usize));
+                        if single_kernel {
+                            acc += kernels[0].index((conv_x, conv_y))
+                                * fields_old.index((ix_cut_x as usize, ix_cut_y as usize));
+                        } else {
+                            acc += kernels[kernel_ix].index((conv_x, conv_y))
+                                * fields_old.index((ix_cut_x as usize, ix_cut_y as usize));
+                        }
                     }
                 }
 

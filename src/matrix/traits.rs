@@ -95,7 +95,7 @@ pub trait Matrix {
 
 pub trait ConvolutionT<Conv: Matrix<Output = T>, T: Copy> {
     /// places accumulated values in self
-    fn convolution(&mut self, kernels: &[Conv], cell_type_matrix: &VecMatrix<CellType>);
+    fn convolution(&mut self, kernels: &[Conv], single_kernel: bool, cell_type_matrix: &VecMatrix<CellType>);
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

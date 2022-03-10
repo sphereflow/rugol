@@ -44,7 +44,9 @@ struct AppConfig {
     elapsed: Duration,
     paused: bool,
     bfade: bool,
+    bsingle_kernel: bool,
     randomize_range: RangeInclusive<CellType>,
+    conv_matrix_copy_range: RangeInclusive<CellType>,
     clear_val: CellType,
     sym_editting: bool,
     symmetry: Symmetry,
@@ -58,7 +60,9 @@ impl Default for AppConfig {
             elapsed: Duration::new(0, 0),
             paused: true,
             bfade: false,
+            bsingle_kernel: true,
             randomize_range: CellType::NoCell..=CellType::A,
+            conv_matrix_copy_range: CellType::NoCell..=CellType::A,
             clear_val: CellType::NoCell,
             sym_editting: false,
             symmetry: Symmetry::XY,
@@ -105,7 +109,11 @@ impl<const CW: usize> RState<CW> {
         self.config.tick = Instant::now();
         let field_type_matrix = &mut self.fields_vec[self.vec_ix];
         let cell_type_matrix = &mut self.cell_type_vec[self.vec_ix];
-        field_type_matrix.convolution(&self.conv_kernels, cell_type_matrix);
+        field_type_matrix.convolution(
+            &self.conv_kernels,
+            self.config.bsingle_kernel,
+            cell_type_matrix,
+        );
         // map the accumulated values to the cell matrix
         // field_type_matrix -> self.rules.apply(...) -> self.cell_type_vec[self.vec_ix]
         // self.cell_type_vec[self.vec_ix] -> self.map.lookup(...) -> self.fields_vec[self.vec_ix]
@@ -255,10 +263,15 @@ impl<const CW: usize> RState<CW> {
 
     fn edit_conv_matrix_ui(&mut self, ui: &mut Ui) {
         let kernel_len = self.conv_kernels.len();
-        let mut copy_indices = None;
+        let mut copy_indices: Vec<(usize, usize)> = Vec::new();
         let mut copy_to_all = None;
         for (cix, conv_matrix) in self.conv_kernels.iter_mut().enumerate() {
-            ui.collapsing(format!("Convolution Matrix: {}", cix), |ui| {
+            let collapsing_text = if self.config.bsingle_kernel {
+                "Convolution Matrix".into()
+            } else {
+                format!("Convolution Matrix: {}", cix)
+            };
+            ui.collapsing(collapsing_text, |ui| {
                 ui.horizontal(|ui| {
                     ui.vertical(|ui| {
                         for y in 0..conv_matrix.height() {
@@ -319,23 +332,51 @@ impl<const CW: usize> RState<CW> {
                             });
                         }
                     });
-                    if cix > 0 {
-                        if ui.button("▲").clicked() {
-                            copy_indices = Some((cix, cix - 1));
-                        }
-                    }
-                    if cix < (kernel_len - 1) {
-                        if ui.button("⯆").clicked() {
-                            copy_indices = Some((cix, cix + 1));
-                        }
-                    }
-                    if ui.button("copy to all").clicked() {
-                        copy_to_all = Some(cix);
+
+                    // copying of kernels
+                    if !self.config.bsingle_kernel {
+                        ui.vertical(|ui| {
+                            // copy up / down
+                            if cix > 0 {
+                                if ui.button("▲").clicked() {
+                                    copy_indices = vec![(cix, cix - 1)];
+                                }
+                            }
+                            if cix < (kernel_len - 1) {
+                                if ui.button("⯆").clicked() {
+                                    copy_indices = vec![(cix, cix + 1)];
+                                }
+                            }
+
+                            ui.horizontal(|ui| {
+                                // copy to range
+                                if ui.button("copy to range").clicked() {
+                                    let ix_range =
+                                        self.config.conv_matrix_copy_range.start().as_index()
+                                            ..=self.config.conv_matrix_copy_range.end().as_index();
+                                    for ix in ix_range{
+                                        copy_indices.push((cix, ix));
+                                    }
+                                }
+                                self.config.conv_matrix_copy_range = Self::edit_range(
+                                    ui,
+                                    self.config.conv_matrix_copy_range.clone(),
+                                );
+                            });
+
+                            // copy to all
+                            if ui.button("copy to all").clicked() {
+                                copy_to_all = Some(cix);
+                            }
+                        });
                     }
                 });
             });
+            if self.config.bsingle_kernel {
+                break;
+            }
         }
-        if let Some((from, to)) = copy_indices {
+        for (from, to) in copy_indices {
             self.conv_kernels[to] = self.conv_kernels[from];
         }
         if let Some(from) = copy_to_all {
@@ -417,6 +458,7 @@ async fn main() {
                                 gol.fader = Fader::new(*w, *h);
                             }
                     }
+                    ui.checkbox(&mut gol.config.bsingle_kernel, "single kernel");
                     ui.checkbox(&mut gol.config.bfade, "fade");
                     ui.add(Slider::new(&mut gol.fader.mix_factor, 0.0..=1.0).text("Fader: mix_factor"));
                     ui.checkbox(&mut gol.config.sym_editting, "symmetric editting");

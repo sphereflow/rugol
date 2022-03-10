@@ -45,6 +45,7 @@ struct AppConfig {
     paused: bool,
     bfade: bool,
     bsingle_kernel: bool,
+    ui_contains_pointer: bool,
     randomize_range: RangeInclusive<CellType>,
     conv_matrix_copy_range: RangeInclusive<CellType>,
     clear_val: CellType,
@@ -61,6 +62,7 @@ impl Default for AppConfig {
             paused: true,
             bfade: false,
             bsingle_kernel: true,
+            ui_contains_pointer: false,
             randomize_range: CellType::NoCell..=CellType::A,
             conv_matrix_copy_range: CellType::NoCell..=CellType::A,
             clear_val: CellType::NoCell,
@@ -354,7 +356,7 @@ impl<const CW: usize> RState<CW> {
                                     let ix_range =
                                         self.config.conv_matrix_copy_range.start().as_index()
                                             ..=self.config.conv_matrix_copy_range.end().as_index();
-                                    for ix in ix_range{
+                                    for ix in ix_range {
                                         copy_indices.push((cix, ix));
                                     }
                                 }
@@ -421,7 +423,8 @@ async fn main() {
         clear_background(BLACK);
 
         egui_macroquad::ui(|ctx| {
-            Window::new("Rugol").show(ctx, |ui| match mode {
+            Window::new("Rugol").show(ctx, |ui| {
+                match mode {
                 UiMode::Warn => {
                     ui.with_layout(Layout::top_down_justified(Align::Center), |ui| {
                         ui.add(Label::new(RichText::new("Warning: Depending on the settings this program may produce bright flashing and/or pulsating images").heading().strong()));
@@ -477,7 +480,9 @@ async fn main() {
                         mode = UiMode::Main;
                     }
                 }
+                }
             });
+            gol.config.ui_contains_pointer = ctx.is_pointer_over_area();
         });
 
         if !gol.config.paused {
@@ -502,6 +507,7 @@ async fn main() {
                 // handle drawing with the mouse pointer on the screen
                 let mouse_pos = mouse_position();
                 if is_mouse_button_down(MouseButton::Left)
+                    && !gol.config.ui_contains_pointer
                     && (x..(x + w)).contains(&mouse_pos.0)
                     && (y..(y + h)).contains(&mouse_pos.1)
                 {

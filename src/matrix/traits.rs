@@ -89,6 +89,12 @@ pub trait Matrix {
                 self.set_at_index((ixx, ixy), val);
                 self.set_at_index((w - ixx, h - ixy), val);
             }
+            Symmetry::DONUT => {
+                let ix_near = ixx.min(ixy);
+                let ix_far = (self.width() - 1) - ixx.max(ixy);
+                let ix = ix_near.min(ix_far);
+                self.donut(ix..=ix, val);
+            }
         }
     }
 }
@@ -110,4 +116,5 @@ pub enum Symmetry {
     XY,
     ROT90,
     ROT180,
+    DONUT,
 }

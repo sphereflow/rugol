@@ -396,6 +396,7 @@ impl<const CW: usize> RState<CW> {
             Symmetry::XY,
             Symmetry::ROT90,
             Symmetry::ROT180,
+            Symmetry::DONUT,
         ];
         for sym in symmetries {
             if ui

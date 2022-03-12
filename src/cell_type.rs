@@ -109,16 +109,17 @@ impl Default for CellTypeMap {
 impl CellTypeMap {
     pub fn new() -> Self {
         let map = vec![
-            (color_u8!(0, 0, 0, 255), 0),
-            (color_u8!(50, 20, 20, 255), 1),
-            (color_u8!(170, 40, 40, 255), 2),
-            (color_u8!(120, 80, 40, 255), 3),
-            (color_u8!(70, 120, 40, 255), 4),
-            (color_u8!(20, 160, 40, 255), 5),
-            (color_u8!(0, 100, 70, 255), 6),
-            (color_u8!(0, 40, 120, 255), 7),
-            (color_u8!(0, 0, 170, 255), 8),
+            (color_u8!(50, 20, 20, 200), 0),    // NoCell
+            (color_u8!(236, 55, 90, 200), 1),  // A
+            (color_u8!(229, 117, 35, 200), 2),  // B
+            (color_u8!(89, 229, 39, 200), 3), // C
+            (color_u8!(228, 228, 32, 200), 4),  // D
+            (color_u8!(105, 216, 205, 200), 5), // E
+            (color_u8!(0, 94, 229, 200), 6),  // F
+            (color_u8!(190, 52, 219, 200), 7),  // G
+            (color_u8!(229, 152, 152, 200), 8), // H
         ];
+        dbg!(map.clone());
         CellTypeMap {
             map,
             selected_idx: 0,
@@ -182,15 +183,12 @@ impl CellTypeMap {
                         selected_idx = idx;
                     }
                     let map = self.get_map_mut();
-                    let mut edit_color = [map[idx].0.r, map[idx].0.g, map[idx].0.b, map[idx].0.a];
+                    let mut edit_color_u8: [u8; 4] = map[idx].0.into();
                     if ui
-                        .color_edit_button_rgba_unmultiplied(&mut edit_color)
+                        .color_edit_button_srgba_unmultiplied(&mut edit_color_u8)
                         .changed()
                     {
-                        map[idx].0.r = edit_color[0];
-                        map[idx].0.g = edit_color[1];
-                        map[idx].0.b = edit_color[2];
-                        map[idx].0.a = edit_color[3];
+                        map[idx].0 = edit_color_u8.into();
                     }
                     ui.horizontal(|ui| {
                         ui.label("value:");

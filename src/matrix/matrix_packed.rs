@@ -134,40 +134,42 @@ impl Matrix for MatrixPacked {
 // C = convolution
 // E = element
 // * = ix_cut{x/y}
-impl<Conv: Matrix<Output = u8>> ConvolutionT<Conv, u8> for MatrixPacked {
+impl<Conv: Matrix<Output = u8>, Acc: Matrix<Output = u8>> ConvolutionT<Conv, u8, Acc>
+    for MatrixPacked
+{
     fn convolution(
-        &mut self,
+        &self,
         kernels: &[Conv],
         single_kernel: bool,
         cell_type_matrix: &VecMatrix<CellType>,
+        acc_matrix: &mut Acc,
+        indices: &Vec<(usize, usize)>,
     ) {
         let kernel_width = kernels[0].width();
         let fields_old = self.clone();
-        for ixy in 0..self.height {
-            for ixx in 0..self.width {
-                let cut_x: i32 = ixx as i32 - (kernel_width / 2) as i32;
-                let cut_y: i32 = ixy as i32 - (kernel_width / 2) as i32;
-                let mut acc = 0;
-                let kernel_ix = cell_type_matrix.index((ixx, ixy)).as_index();
-                for (conv_x, ix_cut_x) in
-                    (cut_x.max(0)..(cut_x + kernel_width as i32).min(self.width as i32)).enumerate()
+        for (ixx, ixy) in indices.iter().copied() {
+            let cut_x: i32 = ixx as i32 - (kernel_width / 2) as i32;
+            let cut_y: i32 = ixy as i32 - (kernel_width / 2) as i32;
+            let mut acc = 0;
+            let kernel_ix = cell_type_matrix.index((ixx, ixy)).as_index();
+            for (conv_x, ix_cut_x) in
+                (cut_x.max(0)..(cut_x + kernel_width as i32).min(self.width as i32)).enumerate()
+            {
+                for (conv_y, ix_cut_y) in (cut_y.max(0)
+                    ..(cut_y + kernel_width as i32).min(self.height as i32))
+                    .enumerate()
                 {
-                    for (conv_y, ix_cut_y) in (cut_y.max(0)
-                        ..(cut_y + kernel_width as i32).min(self.height as i32))
-                        .enumerate()
-                    {
-                        if single_kernel {
-                            acc += kernels[0].index((conv_x, conv_y))
-                                * fields_old.index((ix_cut_x as usize, ix_cut_y as usize));
-                        } else {
-                            acc += kernels[kernel_ix].index((conv_x, conv_y))
-                                * fields_old.index((ix_cut_x as usize, ix_cut_y as usize));
-                        }
+                    if single_kernel {
+                        acc += kernels[0].index((conv_x, conv_y))
+                            * fields_old.index((ix_cut_x as usize, ix_cut_y as usize));
+                    } else {
+                        acc += kernels[kernel_ix].index((conv_x, conv_y))
+                            * fields_old.index((ix_cut_x as usize, ix_cut_y as usize));
                     }
                 }
-
-                self.set_at_index((ixx, ixy), acc);
             }
+
+            acc_matrix.set_at_index((ixx, ixy), acc);
         }
     }
 }

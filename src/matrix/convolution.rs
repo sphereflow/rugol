@@ -17,20 +17,21 @@ pub struct Convolution<T: Copy + Clone, const KW: usize> {
     base: Vec<Vec<T>>,
 }
 
-impl<Conv: Matrix<Output = u8>, const KW: usize> ConvolutionT<Conv, u8> for Convolution<u8, KW> {
+impl<Conv: Matrix<Output = u8>, Acc: Matrix<Output = u8>, const KW: usize>
+    ConvolutionT<Conv, u8, Acc> for Convolution<u8, KW>
+{
     fn convolution(
-        &mut self,
+        &self,
         kernels: &[Conv],
         single_kernel: bool,
         cell_type_matrix: &VecMatrix<CellType>,
+        acc_matrix: &mut Acc,
+        indices: &Vec<(usize, usize)>,
     ) {
-        let mut new_base: Vec<Vec<u8>> = Vec::from_iter(
-            repeat(Vec::from_iter(repeat(0).take(KW.pow(2)))).take(self.width * self.height),
-        );
-        for (slice_ix, slice) in self.base.iter().enumerate() {
+        for (ixx, ixy) in indices.iter().copied() {
             let mut acc: u8 = 0;
-            let (ixx, ixy) = (slice_ix % self.width, slice_ix / self.width);
             let kernel_ix = cell_type_matrix.index((ixx, ixy)).as_index();
+            let slice = &self.base[ixx + self.width * ixy];
             for kixx in 0..KW {
                 for kixy in 0..KW {
                     if single_kernel {
@@ -40,27 +41,26 @@ impl<Conv: Matrix<Output = u8>, const KW: usize> ConvolutionT<Conv, u8> for Conv
                     }
                 }
             }
-            Self::set_base_at_index(&mut new_base, self.width, self.height, (ixx, ixy), acc);
+            acc_matrix.set_at_index((ixx, ixy), acc);
         }
-        self.base = new_base;
     }
 }
 
-impl<Conv: Matrix<Output = i8>, const KW: usize> ConvolutionT<Conv, i8> for Convolution<i8, KW> {
+impl<Conv: Matrix<Output = i8>, Acc: Matrix<Output = i8>, const KW: usize>
+    ConvolutionT<Conv, i8, Acc> for Convolution<i8, KW>
+{
     fn convolution(
-        &mut self,
+        &self,
         kernels: &[Conv],
         single_kernel: bool,
         cell_type_matrix: &VecMatrix<CellType>,
+        acc_matrix: &mut Acc,
+        indices: &Vec<(usize, usize)>,
     ) {
-        // 0 initialize
-        let mut new_base: Vec<Vec<i8>> = Vec::from_iter(
-            repeat(Vec::from_iter(repeat(0).take(KW.pow(2)))).take(self.width * self.height),
-        );
-        for (slice_ix, slice) in self.base.iter().enumerate() {
+        for (ixx, ixy) in indices.iter().copied() {
             let mut acc: i8 = 0;
-            let (ixx, ixy) = (slice_ix % self.width, slice_ix / self.width);
             let kernel_ix = cell_type_matrix.index((ixx, ixy)).as_index();
+            let slice = &self.base[ixx + self.width * ixy];
             for kixx in 0..KW {
                 for kixy in 0..KW {
                     if single_kernel {
@@ -70,9 +70,8 @@ impl<Conv: Matrix<Output = i8>, const KW: usize> ConvolutionT<Conv, i8> for Conv
                     }
                 }
             }
-            Self::set_base_at_index(&mut new_base, self.width, self.height, (ixx, ixy), acc);
+            acc_matrix.set_at_index((ixx, ixy), acc);
         }
-        self.base = new_base;
     }
 }
 

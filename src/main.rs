@@ -10,11 +10,13 @@ use std::ops::RangeInclusive;
 use matrix::convolution::*;
 use matrix::traits::*;
 use matrix::{const_matrix::*, vec_matrix::VecMatrix};
+use quad_tree::*;
 use rules::*;
 
 pub mod cell_type;
 pub mod fade;
 pub mod matrix;
+pub mod quad_tree;
 pub mod rules;
 
 const CELLS: [(usize, usize); 5] = [(10, 5), (100, 50), (200, 100), (400, 200), (800, 400)];
@@ -33,10 +35,13 @@ struct RugolState<M: Matrix + Clone, C: Matrix, N: Matrix<Output = [f32; 4]>> {
     fields_vec: Vec<M>,
     /// Vec of matrices with `CellType` elements
     cell_type_vec: Vec<VecMatrix<CellType>>,
+    /// Accumulator matrices with `FieldType` elements
+    acc_vec: Vec<VecMatrix<FieldType>>,
     /// Index to `fields_vec` and `cell_type_vec`
     vec_ix: usize,
     fader: Fader<N>,
     config: AppConfig,
+    quad_tree: QuadTree<Node>,
 }
 
 struct AppConfig {
@@ -78,9 +83,10 @@ impl<const CW: usize> RState<CW> {
         let conv_matrix = ConstMatrix::new_std_conv_matrix(3, 3);
         let cell_type_map = CellTypeMap::new();
         let fields_vec_ix = 0;
-        let (fields_vec, cell_type_vec) = {
+        let (fields_vec, cell_type_vec, acc_vec) = {
             let mut f = Vec::new();
             let mut ct = Vec::new();
+            let mut acc = Vec::new();
             for (cw, ch) in CELLS {
                 let mut field_type_matrix = Convolution::new(cw, ch);
                 let cell_type_matrix: VecMatrix<CellType> = VecMatrix::new_random(cw, ch);
@@ -92,8 +98,9 @@ impl<const CW: usize> RState<CW> {
                 }
                 f.push(field_type_matrix);
                 ct.push(cell_type_matrix);
+                acc.push(VecMatrix::new(cw, ch));
             }
-            (f, ct)
+            (f, ct, acc)
         };
         RugolState {
             conv_kernels: [conv_matrix; 9],
@@ -101,9 +108,11 @@ impl<const CW: usize> RState<CW> {
             rules: classic_rules(),
             fields_vec,
             cell_type_vec,
+            acc_vec,
             vec_ix: fields_vec_ix,
             fader: Fader::new(CELLS[fields_vec_ix].0, CELLS[fields_vec_ix].1),
             config: AppConfig::default(),
+            quad_tree: QuadTree::new(CELLS[fields_vec_ix].0, CELLS[fields_vec_ix].1, 5),
         }
     }
 
@@ -111,22 +120,45 @@ impl<const CW: usize> RState<CW> {
         self.config.tick = Instant::now();
         let field_type_matrix = &mut self.fields_vec[self.vec_ix];
         let cell_type_matrix = &mut self.cell_type_vec[self.vec_ix];
+        let acc_matrix = &mut self.acc_vec[self.vec_ix];
+        let indices = {
+            let mut res = Vec::new();
+            let mut range_vec = Vec::new();
+            self.quad_tree.get_changed_ranges(CW, 0, 0, &mut range_vec);
+            //dbg!(&range_vec);
+            for range in range_vec.iter_mut() {
+                let (x_start, x_end) = *range.start();
+                let (y_start, y_end) = *range.end();
+                for x in x_start..=x_end {
+                    for y in y_start..=y_end {
+                        res.push((x, y));
+                    }
+                }
+            }
+            res
+        };
         field_type_matrix.convolution(
             &self.conv_kernels,
             self.config.bsingle_kernel,
             cell_type_matrix,
+            acc_matrix,
+            &indices,
         );
+        // dbg!(&indices);
+        // self.quad_tree.print_levels();
+        self.quad_tree.clear();
         // map the accumulated values to the cell matrix
         // field_type_matrix -> self.rules.apply(...) -> self.cell_type_vec[self.vec_ix]
         // self.cell_type_vec[self.vec_ix] -> self.map.lookup(...) -> self.fields_vec[self.vec_ix]
-        for ixx in 0..field_type_matrix.width() {
-            for ixy in 0..field_type_matrix.height() {
-                let acc = field_type_matrix.index((ixx, ixy));
-                let initial_cell = cell_type_matrix.index((ixx, ixy));
-                let cell = self.rules.apply(initial_cell, acc);
-                let field = self.cell_type_map[cell].1;
-                field_type_matrix.set_at_index((ixx, ixy), field);
+        for (ixx, ixy) in indices {
+            let acc = acc_matrix.index((ixx, ixy));
+            let initial_cell = cell_type_matrix.index((ixx, ixy));
+            let cell = self.rules.apply(initial_cell, acc);
+            let field = self.cell_type_map[cell].1;
+            if cell != initial_cell {
                 cell_type_matrix.set_at_index((ixx, ixy), cell);
+                field_type_matrix.set_at_index((ixx, ixy), field);
+                self.quad_tree.insert(ixx, ixy, 0, 0);
             }
         }
         self.fader
@@ -140,6 +172,7 @@ impl<const CW: usize> RState<CW> {
         let w = fields.width();
         let h = fields.height();
         *cells = VecMatrix::new_random_range(w, h, range);
+        self.quad_tree.everything_changed();
         for x in 0..w {
             for y in 0..h {
                 fields.set_at_index((x, y), self.cell_type_map[cells.index((x, y))].1);
@@ -159,6 +192,7 @@ impl<const CW: usize> RState<CW> {
         let field_value = self.cell_type_map[self.config.clear_val].1;
         cells.clear(self.config.clear_val);
         fields.clear(field_value);
+        self.quad_tree.everything_changed();
     }
 
     fn get_fields(&self) -> &BaseMatrix<CW> {
@@ -460,6 +494,7 @@ async fn main() {
                     for (ix, (w, h)) in CELLS.iter().enumerate() {
                             if ui.radio_value(&mut gol.vec_ix, ix, format!("{}x{}", w, h)).changed() {
                                 gol.fader = Fader::new(*w, *h);
+                                gol.quad_tree = QuadTree::new(*w, *h, 5);
                             }
                     }
                     ui.checkbox(&mut gol.config.bsingle_kernel, "single kernel");
@@ -516,6 +551,7 @@ async fn main() {
                     let cell = gol.cell_type_map.get_selected_rules_cell();
                     gol.fields_vec[gol.vec_ix].set_at_index((ixx, ixy), val);
                     gol.cell_type_vec[gol.vec_ix].set_at_index((ixx, ixy), cell);
+                    gol.quad_tree.insert(ixx, ixy, 0, 0);
                 }
 
                 if gol.config.bfade {

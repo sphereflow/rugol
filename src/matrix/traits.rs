@@ -99,13 +99,15 @@ pub trait Matrix {
     }
 }
 
-pub trait ConvolutionT<Conv: Matrix<Output = T>, T: Copy> {
+pub trait ConvolutionT<Conv: Matrix<Output = T>, T: Copy, Acc: Matrix<Output = T>> {
     /// places accumulated values in self
     fn convolution(
-        &mut self,
+        &self,
         kernels: &[Conv],
         single_kernel: bool,
         cell_type_matrix: &VecMatrix<CellType>,
+        acc_matrix: &mut Acc,
+        indices: &Vec<(usize, usize)>,
     );
 }
 

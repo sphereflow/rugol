@@ -9,6 +9,7 @@ edition = "2021"
 macroquad = "0.3"
 miniquad = "0.3.0-alpha.43"
 egui-macroquad = "0.9"
+egui-miniquad = "0.9"
 egui = "0.17"
 instant = "0.1"
 getrandom = { version = "0.2", features = ["js"] }

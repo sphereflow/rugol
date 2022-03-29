@@ -1,5 +1,3 @@
-use std::iter::repeat;
-
 use macroquad::rand::gen_range;
 
 use crate::CellType;

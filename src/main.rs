@@ -1,6 +1,8 @@
 use cell_type::{CellType, CellTypeMap};
 use egui::emath::Numeric;
-use egui::{Align, Button, Color32, DragValue, Label, Layout, Rgba, Sense, Separator, Ui, Window};
+use egui::{
+    Align, Button, Color32, Context, DragValue, Label, Layout, Rgba, Sense, Separator, Ui, Window,
+};
 use egui::{RadioButton, RichText, Slider};
 use fade::Fader;
 use instant::{Duration, Instant};
@@ -11,12 +13,14 @@ use matrix::convolution::*;
 use matrix::traits::*;
 use matrix::{const_matrix::*, vec_matrix::VecMatrix};
 use quad_tree::*;
+use render_mini::mini_main;
 use rules::*;
 
 pub mod cell_type;
 pub mod fade;
 pub mod matrix;
 pub mod quad_tree;
+pub mod render_mini;
 pub mod rules;
 
 const CELLS: [(usize, usize); 5] = [(10, 5), (100, 50), (200, 100), (400, 200), (800, 400)];
@@ -42,12 +46,15 @@ struct RugolState<M: Matrix + Clone, C: Matrix, N: Matrix<Output = [f32; 4]>> {
     fader: Fader<N>,
     config: AppConfig,
     quad_tree: QuadTree<Node>,
+    inst: Instant,
+    frame_time: f64,
 }
 
 struct AppConfig {
     tick: Instant,
     elapsed: Duration,
     paused: bool,
+    bupdate: bool,
     bfade: bool,
     bsingle_kernel: bool,
     ui_contains_pointer: bool,
@@ -57,6 +64,8 @@ struct AppConfig {
     sym_editting: bool,
     symmetry: Symmetry,
     cell_size_factor: f32,
+    mode: UiMode,
+    bnew_size: bool,
 }
 
 impl Default for AppConfig {
@@ -65,6 +74,7 @@ impl Default for AppConfig {
             tick: Instant::now(),
             elapsed: Duration::new(0, 0),
             paused: true,
+            bupdate: true,
             bfade: false,
             bsingle_kernel: true,
             ui_contains_pointer: false,
@@ -74,6 +84,8 @@ impl Default for AppConfig {
             sym_editting: false,
             symmetry: Symmetry::XY,
             cell_size_factor: 0.9,
+            mode: UiMode::Warn,
+            bnew_size: false,
         }
     }
 }
@@ -113,10 +125,13 @@ impl<const CW: usize> RState<CW> {
             fader: Fader::new(CELLS[fields_vec_ix].0, CELLS[fields_vec_ix].1),
             config: AppConfig::default(),
             quad_tree: QuadTree::new(CELLS[fields_vec_ix].0, CELLS[fields_vec_ix].1, 5),
+            inst: Instant::now(),
+            frame_time: 0.,
         }
     }
 
     fn step(&mut self) {
+        self.config.bupdate = true;
         self.config.tick = Instant::now();
         let field_type_matrix = &mut self.fields_vec[self.vec_ix];
         let cell_type_matrix = &mut self.cell_type_vec[self.vec_ix];
@@ -161,8 +176,10 @@ impl<const CW: usize> RState<CW> {
                 self.quad_tree.insert(ixx, ixy, 0, 0);
             }
         }
-        self.fader
-            .add(&self.cell_type_vec[self.vec_ix], &self.cell_type_map);
+        if self.config.bfade {
+            self.fader
+                .add(&self.cell_type_vec[self.vec_ix], &self.cell_type_map);
+        }
         self.config.elapsed = self.config.tick.elapsed();
     }
 
@@ -178,6 +195,7 @@ impl<const CW: usize> RState<CW> {
                 fields.set_at_index((x, y), self.cell_type_map[cells.index((x, y))].1);
             }
         }
+        self.config.bupdate = true;
     }
 
     fn donut_all_kernels(&mut self, range: RangeInclusive<usize>, val: FieldType) {
@@ -193,6 +211,7 @@ impl<const CW: usize> RState<CW> {
         cells.clear(self.config.clear_val);
         fields.clear(field_value);
         self.quad_tree.everything_changed();
+        self.config.bupdate = true;
     }
 
     fn get_fields(&self) -> &BaseMatrix<CW> {
@@ -204,6 +223,75 @@ impl<const CW: usize> RState<CW> {
     }
 
     // Ui stuff
+
+    fn ui(&mut self, ctx: &Context) {
+        Window::new("Rugol").show(ctx, |ui| {
+                match self.config.mode {
+                UiMode::Warn => {
+                    ui.with_layout(Layout::top_down_justified(Align::Center), |ui| {
+                        ui.add(Label::new(RichText::new("Warning: Depending on the settings this program may produce bright flashing and/or pulsating images").heading().strong()));
+                        if ui.button("continue").clicked() {
+                            self.config.mode = UiMode::Main;
+                        }
+                    });
+                }
+                UiMode::Main => {
+                    #[cfg(not(target_arch = "wasm32"))]
+                    ui.label(format!(
+                        "calc_time: {:.1} ms",
+                        (self.config.elapsed.as_micros() as f64) * 0.001
+                    ));
+                    #[cfg(target_arch = "wasm32")]
+                    ui.label(format!("calc_time: {} ms", self.config.elapsed.as_micros()));
+                    ui.label(format!("frame_time: {:.1} ms", self.frame_time));
+                    self.clear_ui(ui);
+                    self.randomize_ui(ui);
+                    self.control_ui(ui);
+                    self.edit_rules_ui(ui);
+                    self.edit_conv_matrix_ui(ui);
+                    if ui.button("Settings").clicked() {
+                        self.config.mode = UiMode::Settings;
+                    }
+                    if ui.button("Help").clicked() {
+                        self.config.mode = UiMode::Help;
+                    }
+                    CellTypeMap::edit(&mut self.cell_type_map, ui);
+                }
+                UiMode::Settings => {
+                    for (ix, (w, h)) in CELLS.iter().enumerate() {
+                            if ui.radio_value(&mut self.vec_ix, ix, format!("{}x{}", w, h)).changed() {
+                                self.fader = Fader::new(*w, *h);
+                                self.quad_tree = QuadTree::new(*w, *h, 5);
+                                self.config.bnew_size = true;
+                                self.config.bupdate = true;
+                            }
+                    }
+                    ui.checkbox(&mut self.config.bsingle_kernel, "single kernel");
+                    ui.checkbox(&mut self.config.bfade, "fade");
+                    ui.add(Slider::new(&mut self.fader.mix_factor, 0.0..=1.0).text("Fader: mix_factor"));
+                    ui.checkbox(&mut self.config.sym_editting, "symmetric editting");
+                    if self.config.sym_editting {
+                        self.edit_symmetry(ui);
+                    }
+                    if ui.add(Slider::new(&mut self.config.cell_size_factor, 0.1..=3.0).text("cell size")).changed() {
+                        self.config.bnew_size = true;
+                        self.config.bupdate = true;
+                    }
+                    if ui.button("<-- back").clicked() {
+                        self.config.mode = UiMode::Main;
+                    }
+                }
+                UiMode::Help => {
+                    ui.label("A description of how Rugol works can be found in the following link:");
+                    ui.hyperlink("https://github.com/sphereflow/rugol#how-it-works");
+                    if ui.button("<-- back").clicked() {
+                        self.config.mode = UiMode::Main;
+                    }
+                }
+                }
+            });
+        self.config.ui_contains_pointer = ctx.is_pointer_over_area();
+    }
 
     fn randomize_ui(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
@@ -446,79 +534,24 @@ impl<const CW: usize> RState<CW> {
     }
 }
 
-#[macroquad::main("Rugol")]
-async fn main() {
+fn main() {
+    mini_main();
+}
+
+// #[macroquad::main("Rugol")]
+// async fn main() {
+//     macro_main().await;
+// }
+
+async fn macro_main() {
     let mut gol = <RState<7>>::new();
     gol.donut_all_kernels(0..=0, 0);
-    let mut mode = UiMode::Warn;
-    let mut inst;
-    let mut frame_time = 0.;
     loop {
-        inst = Instant::now();
+        gol.inst = Instant::now();
         clear_background(BLACK);
 
         egui_macroquad::ui(|ctx| {
-            Window::new("Rugol").show(ctx, |ui| {
-                match mode {
-                UiMode::Warn => {
-                    ui.with_layout(Layout::top_down_justified(Align::Center), |ui| {
-                        ui.add(Label::new(RichText::new("Warning: Depending on the settings this program may produce bright flashing and/or pulsating images").heading().strong()));
-                        if ui.button("continue").clicked() {
-                            mode = UiMode::Main;
-                        }
-                    });
-                }
-                UiMode::Main => {
-                    #[cfg(not(target_arch = "wasm32"))]
-                    ui.label(format!(
-                        "calc_time: {:.1} ms",
-                        (gol.config.elapsed.as_micros() as f64) * 0.001
-                    ));
-                    #[cfg(target_arch = "wasm32")]
-                    ui.label(format!("calc_time: {} ms", gol.config.elapsed.as_micros()));
-                    ui.label(format!("frame_time: {:.1} ms", frame_time));
-                    gol.clear_ui(ui);
-                    gol.randomize_ui(ui);
-                    gol.control_ui(ui);
-                    gol.edit_rules_ui(ui);
-                    gol.edit_conv_matrix_ui(ui);
-                    if ui.button("Settings").clicked() {
-                        mode = UiMode::Settings;
-                    }
-                    if ui.button("Help").clicked() {
-                        mode = UiMode::Help;
-                    }
-                    CellTypeMap::edit(&mut gol.cell_type_map, ui);
-                }
-                UiMode::Settings => {
-                    for (ix, (w, h)) in CELLS.iter().enumerate() {
-                            if ui.radio_value(&mut gol.vec_ix, ix, format!("{}x{}", w, h)).changed() {
-                                gol.fader = Fader::new(*w, *h);
-                                gol.quad_tree = QuadTree::new(*w, *h, 5);
-                            }
-                    }
-                    ui.checkbox(&mut gol.config.bsingle_kernel, "single kernel");
-                    ui.checkbox(&mut gol.config.bfade, "fade");
-                    ui.add(Slider::new(&mut gol.fader.mix_factor, 0.0..=1.0).text("Fader: mix_factor"));
-                    ui.checkbox(&mut gol.config.sym_editting, "symmetric editting");
-                    if gol.config.sym_editting {
-                        gol.edit_symmetry(ui);
-                    }
-                    ui.add(Slider::new(&mut gol.config.cell_size_factor, 0.1..=3.0).text("cell size"));
-                    if ui.button("<-- back").clicked() {
-                        mode = UiMode::Main;
-                    }
-                }
-                UiMode::Help => {
-                    ui.label("A description of how Rugol works can be found in the following link:");
-                    ui.hyperlink("https://github.com/sphereflow/rugol#how-it-works");
-                    if ui.button("<-- back").clicked() {
-                        mode = UiMode::Main;
-                    }
-                }
-                }
-            });
-            gol.config.ui_contains_pointer = ctx.is_pointer_over_area();
+            gol.ui(ctx);
         });
 
         if !gol.config.paused {
@@ -571,11 +604,11 @@ async fn main() {
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            frame_time = (inst.elapsed().as_micros() as f64) * 0.001;
+            gol.frame_time = (gol.inst.elapsed().as_micros() as f64) * 0.001;
         }
         #[cfg(target_arch = "wasm32")]
         {
-            frame_time = inst.elapsed().as_micros() as f64;
+            gol.frame_time = gol.inst.elapsed().as_micros() as f64;
         }
 
         next_frame().await

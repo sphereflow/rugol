@@ -25,7 +25,7 @@ struct Stage {
     vertices: Vec<Vec<Vertex>>,
     vertex_buffers: Vec<Buffer>,
     index_buffer: Buffer,
-    gol: RState<3>,
+    gol: RState<7>,
     bdraw: bool,
 }
 
@@ -45,7 +45,7 @@ impl Stage {
             ],
             shader,
         );
-        let mut gol = <RState<3>>::new();
+        let mut gol = <RState<7>>::new();
         gol.donut_all_kernels(0..=1, 0);
         let mut res = Stage {
             pipeline,

@@ -2,7 +2,7 @@ use egui_miniquad::EguiMq;
 use instant::Instant;
 use miniquad::*;
 
-use crate::{fade::Fader, matrix::traits::Matrix, quad_tree::QuadTree, RState, CELLS};
+use crate::{matrix::traits::Matrix, RState};
 
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
@@ -192,11 +192,7 @@ impl EventHandler for Stage {
             );
             let ixx = (field_width * x_pos / win_width) as usize;
             let ixy = (field_height * y_pos / win_height) as usize;
-            let val = self.gol.cell_type_map.get_selected_rules_val();
-            let cell = self.gol.cell_type_map.get_selected_rules_cell();
-            self.gol.fields_vec[self.gol.vec_ix].set_at_index((ixx, ixy), val);
-            self.gol.cell_type_vec[self.gol.vec_ix].set_at_index((ixx, ixy), cell);
-            self.gol.quad_tree.insert(ixx, ixy, 0, 0);
+            self.gol.set_selected_at_index(ixx, ixy);
             self.gol.config.bupdate = true;
             self.bdraw = true;
         }

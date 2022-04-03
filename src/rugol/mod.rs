@@ -13,8 +13,8 @@ use crate::{
     FieldType,
 };
 
-pub mod rugol_main;
-pub mod rugol_ui;
+pub mod main;
+pub mod ui;
 
 pub struct RugolState<M: Matrix + Clone, C: Matrix, N: Matrix<Output = [f32; 4]>> {
     conv_kernels: [C; 9],

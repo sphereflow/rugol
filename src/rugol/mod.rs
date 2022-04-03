@@ -30,7 +30,7 @@ pub struct RugolState<M: Matrix + Clone, C: Matrix, N: Matrix<Output = [f32; 4]>
     vec_ix: usize,
     pub fader: Fader<N>,
     pub config: AppConfig,
-    pub quad_tree: QuadTree<Node>,
+    quad_tree: QuadTree<Node>,
     pub inst: Instant,
     pub frame_time: f64,
 }

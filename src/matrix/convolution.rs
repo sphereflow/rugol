@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use macroquad::rand::gen_range;
 
 use crate::CellType;
@@ -24,7 +26,7 @@ impl<Conv: Matrix<Output = u8>, Acc: Matrix<Output = u8>, const KW: usize>
         single_kernel: bool,
         cell_type_matrix: &VecMatrix<CellType>,
         acc_matrix: &mut Acc,
-        indices: &Vec<(usize, usize)>,
+        indices: &HashSet<(usize, usize)>,
     ) {
         for (ixx, ixy) in indices.iter().copied() {
             let mut acc: u8 = 0;
@@ -53,7 +55,7 @@ impl<Conv: Matrix<Output = i8>, Acc: Matrix<Output = i8>, const KW: usize>
         single_kernel: bool,
         cell_type_matrix: &VecMatrix<CellType>,
         acc_matrix: &mut Acc,
-        indices: &Vec<(usize, usize)>,
+        indices: &HashSet<(usize, usize)>,
     ) {
         for (ixx, ixy) in indices.iter().copied() {
             let mut acc: i8 = 0;
@@ -234,5 +236,20 @@ impl<const KW: usize> Matrix for Convolution<i8, KW> {
 
     fn height(&self) -> usize {
         self.height
+    }
+}
+
+impl<T: Copy + ToString, const KW: usize> Convolution<T, KW> {
+    pub fn display_element(&self, (ixx, ixy): (usize, usize)) -> String {
+        let mut res = String::new();
+        let conv = &self.base[ixy * self.width + ixx];
+        for y in 0..KW {
+            for x in 0..KW {
+                res.push_str(&conv[y * KW + x].to_string());
+                res.push_str(", ");
+            }
+            res.push_str("\n");
+        }
+        res
     }
 }

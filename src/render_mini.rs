@@ -137,6 +137,17 @@ impl Stage {
             });
         }
     }
+
+    fn mouse_pos_to_index(&self, ctx: &mut Context, mouse_x: f32, mouse_y: f32) -> (usize, usize) {
+        let (win_width, win_height) = ctx.screen_size();
+        let (field_width, field_height) = (
+            self.gol.get_fields().width() as f32,
+            self.gol.get_fields().height() as f32,
+        );
+        let ixx = (field_width * mouse_x / win_width) as usize;
+        let ixy = (field_height * mouse_y / win_height) as usize;
+        (ixx, ixy)
+    }
 }
 
 impl EventHandler for Stage {
@@ -185,13 +196,7 @@ impl EventHandler for Stage {
     ) {
         // handle drawing with the mouse pointer on the screen
         if button == MouseButton::Left && !self.gol.config.ui_contains_pointer {
-            let (win_width, win_height) = ctx.screen_size();
-            let (field_width, field_height) = (
-                self.gol.get_fields().width() as f32,
-                self.gol.get_fields().height() as f32,
-            );
-            let ixx = (field_width * x_pos / win_width) as usize;
-            let ixy = (field_height * y_pos / win_height) as usize;
+            let (ixx, ixy) = self.mouse_pos_to_index(ctx, x_pos, y_pos);
             self.gol.set_selected_at_index(ixx, ixy);
             self.gol.config.bupdate = true;
             self.bdraw = true;
@@ -209,6 +214,12 @@ impl EventHandler for Stage {
 
     fn mouse_motion_event(&mut self, ctx: &mut Context, x: f32, y: f32) {
         self.egui_mini.mouse_motion_event(ctx, x, y);
+        if !self.gol.config.ui_contains_pointer {
+            let (ixx, ixy) = self.mouse_pos_to_index(ctx, x, y);
+            self.gol.hover_ix = Some((ixx, ixy));
+        } else {
+            self.gol.hover_ix = None;
+        }
     }
 
     fn mouse_wheel_event(&mut self, ctx: &mut Context, dx: f32, dy: f32) {

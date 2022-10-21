@@ -4,7 +4,7 @@ use super::{
 };
 use crate::CellType;
 use macroquad::rand::gen_range;
-use std::iter::repeat;
+use std::{iter::repeat, collections::HashSet};
 
 #[derive(Clone, Debug)]
 pub struct MatrixPacked {
@@ -143,7 +143,7 @@ impl<Conv: Matrix<Output = u8>, Acc: Matrix<Output = u8>> ConvolutionT<Conv, u8,
         single_kernel: bool,
         cell_type_matrix: &VecMatrix<CellType>,
         acc_matrix: &mut Acc,
-        indices: &Vec<(usize, usize)>,
+        indices: &HashSet<(usize, usize)>,
     ) {
         let kernel_width = kernels[0].width();
         let fields_old = self.clone();

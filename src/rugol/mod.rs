@@ -28,6 +28,9 @@ pub struct RugolState<M: Matrix + Clone, C: Matrix, N: Matrix<Output = [f32; 4]>
     acc_vec: Vec<VecMatrix<FieldType>>,
     /// Index to `fields_vec` and `cell_type_vec`
     vec_ix: usize,
+    /// Index of the field the mouse is currently over
+    /// None if the mouse pointer is outside the window or over the ui
+    pub hover_ix: Option<(usize, usize)>,
     pub fader: Fader<N>,
     pub config: AppConfig,
     quad_tree: QuadTree<Node>,

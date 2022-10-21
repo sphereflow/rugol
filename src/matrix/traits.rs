@@ -1,6 +1,6 @@
 use super::vec_matrix::VecMatrix;
 use crate::CellType;
-use std::ops::RangeInclusive;
+use std::{ops::RangeInclusive, collections::HashSet};
 
 pub trait Matrix {
     type Output: Copy;
@@ -107,7 +107,7 @@ pub trait ConvolutionT<Conv: Matrix<Output = T>, T: Copy, Acc: Matrix<Output = T
         single_kernel: bool,
         cell_type_matrix: &VecMatrix<CellType>,
         acc_matrix: &mut Acc,
-        indices: &Vec<(usize, usize)>,
+        indices: &HashSet<(usize, usize)>,
     );
 }
 

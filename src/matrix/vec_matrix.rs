@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::CellType;
 
 use super::*;
@@ -258,5 +260,17 @@ impl Matrix for VecMatrix<CellType> {
 
     fn height(&self) -> usize {
         self.height
+    }
+}
+
+impl<T: Copy + Display> Display for VecMatrix<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for ixy in 0..self.height {
+            for ixx in 0..self.width {
+                write!(f, "{}, ", self.data[ixy * self.width + ixx])?;
+            }
+            writeln!(f,"")?;
+        }
+        Ok(())
     }
 }

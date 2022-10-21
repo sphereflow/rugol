@@ -1,4 +1,4 @@
-use std::ops::RangeInclusive;
+use std::{ops::RangeInclusive, collections::HashSet};
 
 use instant::Instant;
 
@@ -48,6 +48,7 @@ impl<const CW: usize> RState<CW> {
             cell_type_vec,
             acc_vec,
             vec_ix: fields_vec_ix,
+            hover_ix: None,
             fader: Fader::new(CELLS[fields_vec_ix].0, CELLS[fields_vec_ix].1),
             config: AppConfig::default(),
             quad_tree: QuadTree::new(CELLS[fields_vec_ix].0, CELLS[fields_vec_ix].1, 5),
@@ -63,16 +64,16 @@ impl<const CW: usize> RState<CW> {
         let cell_type_matrix = &mut self.cell_type_vec[self.vec_ix];
         let acc_matrix = &mut self.acc_vec[self.vec_ix];
         let indices = {
-            let mut res = Vec::new();
+            let mut res = HashSet::new();
             let mut range_vec = Vec::new();
             self.quad_tree.get_changed_ranges(CW, 0, 0, &mut range_vec);
-            //dbg!(&range_vec);
+            // dbg!(&range_vec);
             for range in range_vec.iter_mut() {
                 let (x_start, x_end) = *range.start();
                 let (y_start, y_end) = *range.end();
                 for x in x_start..=x_end {
                     for y in y_start..=y_end {
-                        res.push((x, y));
+                        res.insert((x, y));
                     }
                 }
             }
@@ -87,6 +88,7 @@ impl<const CW: usize> RState<CW> {
         );
         // dbg!(&indices);
         // self.quad_tree.print_levels();
+        // println!("Acc:\n{acc_matrix}");
         self.quad_tree.clear();
         // map the accumulated values to the cell matrix
         // field_type_matrix -> self.rules.apply(...) -> self.cell_type_vec[self.vec_ix]

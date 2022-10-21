@@ -19,6 +19,11 @@ pub mod rules;
 
 const CELLS: [(usize, usize); 5] = [(10, 5), (100, 50), (200, 100), (400, 200), (800, 400)];
 
+pub enum ConvolutionWidth {
+    Three,
+    Five,
+}
+
 // type RState = RugolState<ConstMatrix<u8, CELLS_X, CELLS_Y>, ConstMatrix<u8, 3, 3>>;
 type FieldType = i8;
 type BaseMatrix<const CW: usize> = Convolution<FieldType, CW>;
@@ -105,6 +110,5 @@ pub async fn macro_main() {
 pub enum UiMode {
     Warn,
     Main,
-    Settings,
     Help,
 }

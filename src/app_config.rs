@@ -18,6 +18,7 @@ pub struct AppConfig {
     pub cell_size_factor: f32,
     pub mode: UiMode,
     pub bnew_size: bool,
+    pub ui_sections: UiSections,
 }
 
 impl Default for AppConfig {
@@ -38,6 +39,27 @@ impl Default for AppConfig {
             cell_size_factor: 0.9,
             mode: UiMode::Warn,
             bnew_size: false,
+            ui_sections: UiSections::default(),
+        }
+    }
+}
+
+pub struct UiSections {
+    pub settings: bool,
+    pub reset_fields: bool,
+    pub edit_rules: bool,
+    pub edit_conv_matrix: bool,
+    pub edit_colors: bool,
+}
+
+impl Default for UiSections {
+    fn default() -> Self {
+        UiSections {
+            settings: false,
+            reset_fields: false,
+            edit_rules: false,
+            edit_conv_matrix: false,
+            edit_colors: false,
         }
     }
 }

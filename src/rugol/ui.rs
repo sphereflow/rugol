@@ -1,8 +1,8 @@
+use super::*;
 use egui::emath::Numeric;
 use egui::*;
 use macroquad::prelude::*;
 use std::ops::RangeInclusive;
-use super::*;
 
 use crate::{
     cell_type::{CellType, CellTypeMap},
@@ -34,41 +34,29 @@ impl<const CW: usize> RState<CW> {
                     #[cfg(target_arch = "wasm32")]
                     ui.label(format!("calc_time: {} ms", self.config.elapsed.as_micros()));
                     ui.label(format!("frame_time: {:.1} ms", self.frame_time));
-                    self.clear_ui(ui);
-                    self.randomize_ui(ui);
+                    if let Some(ix) = self.hover_ix {
+                        ui.label(format!("hovered field: {}", self.fields_vec[self.vec_ix].display_element(ix)));
+                    }
                     self.control_ui(ui);
-                    self.edit_rules_ui(ui);
-                    self.edit_conv_matrix_ui(ui);
-                    if ui.button("Settings").clicked() {
-                        self.config.mode = UiMode::Settings;
+                    self.sections_ui(ui);
+                    if self.config.ui_sections.reset_fields {
+                    self.clear_ui(ui);
+                        self.randomize_ui(ui);
+                    }
+                    if self.config.ui_sections.edit_rules {
+                        self.edit_rules_ui(ui);
+                    }
+                    if self.config.ui_sections.settings {
+                        self.settings_ui(ui);
+                    }
+                    if self.config.ui_sections.edit_conv_matrix {
+                        self.edit_conv_matrix_ui(ui);
+                    }
+                    if self.config.ui_sections.edit_colors {
+                        CellTypeMap::edit(&mut self.cell_type_map, ui);
                     }
                     if ui.button("Help").clicked() {
                         self.config.mode = UiMode::Help;
-                    }
-                    CellTypeMap::edit(&mut self.cell_type_map, ui);
-                }
-                UiMode::Settings => {
-                    for (ix, (w, h)) in CELLS.iter().enumerate() {
-                            if ui.radio_value(&mut self.vec_ix, ix, format!("{}x{}", w, h)).changed() {
-                                self.fader = Fader::new(*w, *h);
-                                self.quad_tree = QuadTree::new(*w, *h, 5);
-                                self.config.bnew_size = true;
-                                self.config.bupdate = true;
-                            }
-                    }
-                    ui.checkbox(&mut self.config.bsingle_kernel, "single kernel");
-                    ui.checkbox(&mut self.config.bfade, "fade");
-                    ui.add(Slider::new(&mut self.fader.mix_factor, 0.0_f32..=1.0).text("Fader: mix_factor"));
-                    ui.checkbox(&mut self.config.sym_editting, "symmetric editting");
-                    if self.config.sym_editting {
-                        self.edit_symmetry(ui);
-                    }
-                    if ui.add(Slider::new(&mut self.config.cell_size_factor, 0.1_f32..=3.0).text("cell size")).changed() {
-                        self.config.bnew_size = true;
-                        self.config.bupdate = true;
-                    }
-                    if ui.button("<-- back").clicked() {
-                        self.config.mode = UiMode::Main;
                     }
                 }
                 UiMode::Help => {
@@ -81,6 +69,34 @@ impl<const CW: usize> RState<CW> {
                 }
             });
         self.config.ui_contains_pointer = ctx.is_pointer_over_area();
+    }
+
+    fn sections_ui(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            Self::select_bool_ui(ui, &mut self.config.ui_sections.settings, "Settings");
+            Self::select_bool_ui(
+                ui,
+                &mut self.config.ui_sections.reset_fields,
+                "Reset controls",
+            );
+            Self::select_bool_ui(ui, &mut self.config.ui_sections.edit_rules, "Edit rules");
+            Self::select_bool_ui(
+                ui,
+                &mut self.config.ui_sections.edit_conv_matrix,
+                "Edit convolution matrix",
+            );
+            Self::select_bool_ui(
+                ui,
+                &mut self.config.ui_sections.edit_colors,
+                "Edit colors and values",
+            );
+        });
+    }
+
+    fn select_bool_ui(ui: &mut Ui, b: &mut bool, text: impl Into<WidgetText>) {
+        if ui.selectable_label(*b, text).clicked() {
+            *b = !*b;
+        }
     }
 
     fn randomize_ui(&mut self, ui: &mut Ui) {
@@ -117,6 +133,34 @@ impl<const CW: usize> RState<CW> {
             });
         } else if ui.button("⏸").clicked() {
             self.config.paused = true;
+        }
+    }
+
+    fn settings_ui(&mut self, ui: &mut Ui) {
+        for (ix, (w, h)) in CELLS.iter().enumerate() {
+            if ui
+                .radio_value(&mut self.vec_ix, ix, format!("{}x{}", w, h))
+                .changed()
+            {
+                self.fader = Fader::new(*w, *h);
+                self.quad_tree = QuadTree::new(*w, *h, 5);
+                self.config.bnew_size = true;
+                self.config.bupdate = true;
+            }
+        }
+        ui.checkbox(&mut self.config.bsingle_kernel, "single kernel");
+        ui.checkbox(&mut self.config.bfade, "fade");
+        ui.add(Slider::new(&mut self.fader.mix_factor, 0.0_f32..=1.0).text("Fader: mix_factor"));
+        ui.checkbox(&mut self.config.sym_editting, "symmetric editting");
+        if self.config.sym_editting {
+            self.edit_symmetry(ui);
+        }
+        if ui
+            .add(Slider::new(&mut self.config.cell_size_factor, 0.1_f32..=3.0).text("cell size"))
+            .changed()
+        {
+            self.config.bnew_size = true;
+            self.config.bupdate = true;
         }
     }
 

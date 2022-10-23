@@ -16,6 +16,7 @@ pub mod quad_tree;
 pub mod render_mini;
 pub mod rugol;
 pub mod rules;
+pub mod index_set;
 
 const CELLS: [(usize, usize); 5] = [(10, 5), (100, 50), (200, 100), (400, 200), (800, 400)];
 

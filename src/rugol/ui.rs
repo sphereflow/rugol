@@ -240,16 +240,15 @@ impl<const CW: usize> RState<CW> {
                                 for x in 0..conv_matrix.width() {
                                     let val = conv_matrix.index((x, y));
                                     //ui.add(DragValue::new(&mut val));
-                                    let text_col;
                                     let col = match self.cell_type_map.color_for_value(val) {
                                         Some(col) => col,
                                         None => WHITE,
                                     };
-                                    if (col.r + col.g + col.b) < 0.5 {
-                                        text_col = Color32::GRAY
+                                    let text_col = if (col.r + col.g + col.b) < 0.5 {
+                                        Color32::GRAY
                                     } else {
-                                        text_col = Color32::BLACK
-                                    }
+                                        Color32::BLACK
+                                    };
                                     if ui
                                         .add(
                                             Label::new(
@@ -298,15 +297,12 @@ impl<const CW: usize> RState<CW> {
                     if !self.config.bsingle_kernel {
                         ui.vertical(|ui| {
                             // copy up / down
-                            if cix > 0 {
-                                if ui.button("▲").clicked() {
-                                    copy_indices = vec![(cix, cix - 1)];
-                                }
+                            if cix > 0 && ui.button("▲").clicked() {
+                                copy_indices = vec![(cix, cix - 1)];
                             }
-                            if cix < (kernel_len - 1) {
-                                if ui.button("⯆").clicked() {
-                                    copy_indices = vec![(cix, cix + 1)];
-                                }
+
+                            if cix < (kernel_len - 1) && ui.button("⯆").clicked() {
+                                copy_indices = vec![(cix, cix + 1)];
                             }
 
                             ui.horizontal(|ui| {

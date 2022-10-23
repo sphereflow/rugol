@@ -21,9 +21,9 @@ impl<const M: usize, const N: usize> Matrix for ConstMatrix<u8, M, N> {
 
     fn new_random(_width: usize, _height: usize) -> ConstMatrix<u8, M, N> {
         let mut data = [[0; N]; M];
-        for y in 0..M {
-            for x in 0..N {
-                data[y][x] = gen_range(0_u8, 2);
+        for slice in data.iter_mut(){
+            for item in slice {
+                *item = gen_range(0_u8, 2);
             }
         }
         ConstMatrix { data }
@@ -35,9 +35,9 @@ impl<const M: usize, const N: usize> Matrix for ConstMatrix<u8, M, N> {
         range: RangeInclusive<Self::Output>,
     ) -> ConstMatrix<u8, M, N> {
         let mut data = [[0; N]; M];
-        for x in 0..M {
-            for y in 0..N {
-                data[y][x] = gen_range(*range.start(), range.end() + 1);
+        for slice in data.iter_mut() {
+            for item in slice.iter_mut() {
+                *item = gen_range(*range.start(), range.end() + 1);
             }
         }
         ConstMatrix { data }
@@ -76,9 +76,9 @@ impl<const M: usize, const N: usize> Matrix for ConstMatrix<i8, M, N> {
 
     fn new_random(_width: usize, _height: usize) -> ConstMatrix<i8, M, N> {
         let mut data = [[0; N]; M];
-        for y in 0..M {
-            for x in 0..N {
-                data[y][x] = gen_range::<i16>(0, 2) as i8;
+        for slice in data.iter_mut() {
+            for item in slice.iter_mut() {
+                *item = gen_range::<i16>(0, 2) as i8;
             }
         }
         ConstMatrix { data }
@@ -90,9 +90,9 @@ impl<const M: usize, const N: usize> Matrix for ConstMatrix<i8, M, N> {
         range: RangeInclusive<Self::Output>,
     ) -> ConstMatrix<i8, M, N> {
         let mut data = [[0; N]; M];
-        for y in 0..M {
-            for x in 0..N {
-                data[y][x] = gen_range::<i16>(*range.start() as i16, *range.end() as i16 + 1) as i8;
+        for slice in data.iter_mut() {
+            for item in slice.iter_mut() {
+                *item = gen_range::<i16>(*range.start() as i16, *range.end() as i16 + 1) as i8;
             }
         }
         ConstMatrix { data }
@@ -132,9 +132,9 @@ impl<const M: usize, const N: usize> Matrix for ConstMatrix<CellType, M, N> {
 
     fn new_random(_width: usize, _height: usize) -> ConstMatrix<CellType, M, N> {
         let mut data: [[CellType; N]; M] = [[CellType::NoCell; N]; M];
-        for y in 0..M {
-            for x in 0..N {
-                data[y][x] = gen_range(CellType::NoCell, CellType::H);
+        for slice in data.iter_mut() {
+            for item in slice.iter_mut() {
+                *item = gen_range(CellType::NoCell, CellType::H);
             }
         }
         ConstMatrix { data }
@@ -146,9 +146,9 @@ impl<const M: usize, const N: usize> Matrix for ConstMatrix<CellType, M, N> {
         range: RangeInclusive<Self::Output>,
     ) -> Self {
         let mut data: [[CellType; N]; M] = [[CellType::NoCell; N]; M];
-        for y in 0..M {
-            for x in 0..N {
-                data[y][x] = CellType::random_range(&range);
+        for slice in data.iter_mut() {
+            for item in slice.iter_mut() {
+                *item = CellType::random_range(&range);
             }
         }
         ConstMatrix { data }

@@ -14,6 +14,7 @@ egui = "0.17"
 instant = "0.1"
 getrandom = { version = "0.2", features = ["js"] }
 num-traits = "0.2"
+fixedbitset = "0.4"
 
 [profile.release]
 opt-level = 's'

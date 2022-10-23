@@ -2,9 +2,9 @@ use super::{
     traits::{ConvolutionT, Matrix},
     vec_matrix::VecMatrix,
 };
-use crate::CellType;
+use crate::{CellType, index_set::IndexSet};
 use macroquad::rand::gen_range;
-use std::{iter::repeat, collections::HashSet};
+use std::iter::repeat;
 
 #[derive(Clone, Debug)]
 pub struct MatrixPacked {
@@ -143,11 +143,11 @@ impl<Conv: Matrix<Output = u8>, Acc: Matrix<Output = u8>> ConvolutionT<Conv, u8,
         single_kernel: bool,
         cell_type_matrix: &VecMatrix<CellType>,
         acc_matrix: &mut Acc,
-        indices: &HashSet<(usize, usize)>,
+        indices: &IndexSet,
     ) {
         let kernel_width = kernels[0].width();
         let fields_old = self.clone();
-        for (ixx, ixy) in indices.iter().copied() {
+        for (ixx, ixy) in indices.iter() {
             let cut_x: i32 = ixx as i32 - (kernel_width / 2) as i32;
             let cut_y: i32 = ixy as i32 - (kernel_width / 2) as i32;
             let mut acc = 0;

@@ -1,8 +1,6 @@
-use std::collections::HashSet;
-
 use macroquad::rand::gen_range;
 
-use crate::CellType;
+use crate::{index_set::IndexSet, CellType};
 
 use super::{
     traits::{ConvolutionT, Matrix},
@@ -26,9 +24,9 @@ impl<Conv: Matrix<Output = u8>, Acc: Matrix<Output = u8>, const KW: usize>
         single_kernel: bool,
         cell_type_matrix: &VecMatrix<CellType>,
         acc_matrix: &mut Acc,
-        indices: &HashSet<(usize, usize)>,
+        indices: &IndexSet,
     ) {
-        for (ixx, ixy) in indices.iter().copied() {
+        for (ixx, ixy) in indices.iter() {
             let mut acc: u8 = 0;
             let kernel_ix = cell_type_matrix.index((ixx, ixy)).as_index();
             let slice = &self.base[ixx + self.width * ixy];
@@ -55,9 +53,9 @@ impl<Conv: Matrix<Output = i8>, Acc: Matrix<Output = i8>, const KW: usize>
         single_kernel: bool,
         cell_type_matrix: &VecMatrix<CellType>,
         acc_matrix: &mut Acc,
-        indices: &HashSet<(usize, usize)>,
+        indices: &IndexSet,
     ) {
-        for (ixx, ixy) in indices.iter().copied() {
+        for (ixx, ixy) in indices.iter() {
             let mut acc: i8 = 0;
             let kernel_ix = cell_type_matrix.index((ixx, ixy)).as_index();
             let slice = &self.base[ixx + self.width * ixy];
@@ -77,7 +75,7 @@ impl<Conv: Matrix<Output = i8>, Acc: Matrix<Output = i8>, const KW: usize>
 
 impl<T: Copy, const KW: usize> Convolution<T, KW> {
     fn set_base_at_index(
-        base: &mut Vec<Vec<T>>,
+        base: &mut [Vec<T>],
         base_width: usize,
         base_height: usize,
         (ixx, ixy): (usize, usize),
@@ -248,7 +246,7 @@ impl<T: Copy + ToString, const KW: usize> Convolution<T, KW> {
                 res.push_str(&conv[y * KW + x].to_string());
                 res.push_str(", ");
             }
-            res.push_str("\n");
+            res.push('\n');
         }
         res
     }

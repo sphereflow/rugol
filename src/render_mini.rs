@@ -31,7 +31,7 @@ struct Stage {
 
 impl Stage {
     pub fn new(ctx: &mut Context) -> Stage {
-        let index_buffer = Buffer::immutable::<u16>(ctx, BufferType::IndexBuffer, &vec![]);
+        let index_buffer = Buffer::immutable::<u16>(ctx, BufferType::IndexBuffer, &[]);
         let bindings = vec![];
 
         let shader = Shader::new(ctx, shader::VERTEX, shader::FRAGMENT, shader::meta()).unwrap();
@@ -264,7 +264,7 @@ impl EventHandler for Stage {
 
         ctx.apply_pipeline(&self.pipeline);
         for binding in &self.bindings {
-            ctx.apply_bindings(&binding);
+            ctx.apply_bindings(binding);
 
             ctx.draw(0, 6 * self.gol.get_fields().width() as i32, 1);
         }

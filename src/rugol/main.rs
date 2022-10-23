@@ -1,4 +1,4 @@
-use std::{ops::RangeInclusive, collections::HashSet};
+use std::ops::RangeInclusive;
 
 use instant::Instant;
 
@@ -13,7 +13,7 @@ use crate::{
     },
     quad_tree::QuadTree,
     rules::classic_rules,
-    BaseMatrix, FieldType, RState, CELLS,
+    BaseMatrix, FieldType, RState, CELLS, index_set::IndexSet,
 };
 
 impl<const CW: usize> RState<CW> {
@@ -64,18 +64,12 @@ impl<const CW: usize> RState<CW> {
         let cell_type_matrix = &mut self.cell_type_vec[self.vec_ix];
         let acc_matrix = &mut self.acc_vec[self.vec_ix];
         let indices = {
-            let mut res = HashSet::new();
+            let mut res = IndexSet::new(acc_matrix.width(), acc_matrix.height());
             let mut range_vec = Vec::new();
             self.quad_tree.get_changed_ranges(CW, 0, 0, &mut range_vec);
             // dbg!(&range_vec);
-            for range in range_vec.iter_mut() {
-                let (x_start, x_end) = *range.start();
-                let (y_start, y_end) = *range.end();
-                for x in x_start..=x_end {
-                    for y in y_start..=y_end {
-                        res.insert((x, y));
-                    }
-                }
+            for range in range_vec.iter() {
+                res.insert_rect(range);
             }
             res
         };
@@ -93,7 +87,8 @@ impl<const CW: usize> RState<CW> {
         // map the accumulated values to the cell matrix
         // field_type_matrix -> self.rules.apply(...) -> self.cell_type_vec[self.vec_ix]
         // self.cell_type_vec[self.vec_ix] -> self.map.lookup(...) -> self.fields_vec[self.vec_ix]
-        for (ixx, ixy) in indices {
+        // stores indices that have already had rules applied to them
+        for (ixx, ixy) in indices.iter() {
             let acc = acc_matrix.index((ixx, ixy));
             let initial_cell = cell_type_matrix.index((ixx, ixy));
             let cell = self.rules.apply(initial_cell, acc);

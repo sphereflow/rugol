@@ -58,8 +58,8 @@ impl QuadTree<Node> {
         if x_start <= x_end && y_start <= y_end {
             let xh = x_start + (x_end - x_start) / 2;
             let yh = y_start + (y_end - y_start) / 2;
-            self.tree[level][node_ix].x_range = x_range.clone();
-            self.tree[level][node_ix].y_range = y_range.clone();
+            self.tree[level][node_ix].x_range = x_range;
+            self.tree[level][node_ix].y_range = y_range;
             if level < (self.tree.len() - 1) {
                 self.insert_ranges(level + 1, node_ix * 4, x_start..=xh, y_start..=yh);
                 self.insert_ranges(level + 1, node_ix * 4 + 1, (xh + 1)..=x_end, y_start..=yh);
@@ -150,7 +150,7 @@ impl QuadTree<Node> {
 
                 res.push((x_start, x_end)..=(y_start, y_end));
             }
-            Changed::No => return,
+            Changed::No => {}
             Changed::Partial => {
                 if level >= (self.tree.len() - 1) {
                     panic!("Partial leaf");

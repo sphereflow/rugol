@@ -269,7 +269,7 @@ impl<T: Copy + Display> Display for VecMatrix<T> {
             for ixx in 0..self.width {
                 write!(f, "{}, ", self.data[ixy * self.width + ixx])?;
             }
-            writeln!(f,"")?;
+            writeln!(f)?;
         }
         Ok(())
     }

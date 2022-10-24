@@ -20,9 +20,8 @@ There is a CellType matrix which is used to display the game state.
 ### FieldType
 There is a matrix which contains FieldType values.  
 These are componentwise multiplied and accumulated.  
-Currently there are only 2 FieldType's implemented:  
-- u8: unsigned 8 bit integers
-- i8: signed 8 bit integers
+The FieldType can be any primitive float or integer type  
+and is set at compile time via the FieldType type alias.  
 
 ### Convolution kernel
 A convolution kernel is a matrix which contains FieldType values.  

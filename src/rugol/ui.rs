@@ -1,11 +1,12 @@
 use super::*;
 use crate::{
     cell_type::{CellType, CellTypeMap},
+    color::WHITE,
     fade::Fader,
     matrix::traits::Symmetry,
     quad_tree::QuadTree,
     rules::{flame_rules, Rule},
-    RState, UiMode, CELLS, color::WHITE,
+    RState, UiMode, CELLS,
 };
 use egui::emath::Numeric;
 use egui::*;
@@ -106,7 +107,7 @@ impl<const CW: usize> RState<CW> {
             if ui.button("Random range").clicked() {
                 self.randomize(self.config.randomize_range.clone());
             }
-            self.config.randomize_range = Self::edit_range(ui, self.config.randomize_range.clone());
+            self.config.randomize_range = Self::edit_cell_type_range(ui, self.config.randomize_range.clone());
         });
     }
 
@@ -116,7 +117,7 @@ impl<const CW: usize> RState<CW> {
                 self.clear();
             }
             ui.label("clear value:");
-            ui.add(DragValue::new(&mut self.config.clear_val));
+            Self::edit_cell_type(ui, &mut self.config.clear_val);
         });
     }
 
@@ -191,12 +192,9 @@ impl<const CW: usize> RState<CW> {
         let mut o_delete_ix = None;
         for (del_ix, rule) in self.rules.rules.iter_mut().enumerate() {
             ui.horizontal(|ui| {
-                ui.add(DragValue::new(&mut rule.state));
+                Self::edit_cell_type(ui, &mut rule.state);
                 ui.label("->");
-                ui.add(
-                    DragValue::new(&mut rule.transition)
-                        .clamp_range::<CellType>(CellType::NoCell..=CellType::H),
-                );
+                Self::edit_cell_type(ui, &mut rule.transition);
                 ui.add(Separator::default());
                 rule.range = <RState<CW>>::edit_range(ui, rule.range.clone());
                 if ui.add(Button::new("Delete rule")).clicked() {
@@ -209,14 +207,32 @@ impl<const CW: usize> RState<CW> {
         }
     }
 
+    fn edit_cell_type(ui: &mut Ui, cell: &mut CellType) {
+        ui.add(
+            DragValue::new(cell).custom_formatter(|num, _| format!("{}", CellType::from_f64(num))),
+        );
+    }
+
     fn edit_range<T: Numeric>(ui: &mut Ui, range: RangeInclusive<T>) -> RangeInclusive<T> {
         let mut start = *range.start();
         let mut end = *range.end();
         ui.horizontal(|ui| {
             ui.label("range: ");
-            ui.add(DragValue::new(&mut start));
+            ui.add(DragValue::new(&mut start).speed(0.01));
             ui.label("..=");
-            ui.add(DragValue::new(&mut end));
+            ui.add(DragValue::new(&mut end).speed(0.01));
+        });
+        start..=end
+    }
+
+    fn edit_cell_type_range(ui: &mut Ui, range: RangeInclusive<CellType>) -> RangeInclusive<CellType> {
+        let mut start = *range.start();
+        let mut end = *range.end();
+        ui.horizontal(|ui| {
+            ui.label("range: ");
+            Self::edit_cell_type(ui, &mut start);
+            ui.label("..=");
+            Self::edit_cell_type(ui, &mut end);
         });
         start..=end
     }

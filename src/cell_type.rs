@@ -153,7 +153,7 @@ impl CellTypeMap {
     }
 
     fn set_selected_idx(&mut self, idx: usize) {
-        self.selected_idx = idx.clamp(0, 7);
+        self.selected_idx = idx.clamp(0, 8);
     }
 
     pub fn get_selected_rules_cell(&self) -> CellType {
@@ -191,7 +191,7 @@ impl CellTypeMap {
                     }
                     ui.horizontal(|ui| {
                         ui.label("value:");
-                        ui.add(DragValue::new(&mut map[idx].1));
+                        ui.add(DragValue::new(&mut map[idx].1).speed(0.01));
                     });
                 }
             });

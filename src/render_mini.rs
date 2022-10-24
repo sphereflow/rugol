@@ -214,7 +214,7 @@ impl EventHandler for Stage {
     }
 
     fn mouse_motion_event(&mut self, ctx: &mut Context, x: f32, y: f32) {
-        self.egui_mini.mouse_motion_event(ctx, x, y);
+        self.egui_mini.mouse_motion_event(x, y);
         if !self.gol.config.ui_contains_pointer {
             let (ixx, ixy) = self.mouse_pos_to_index(ctx, x, y);
             self.gol.hover_ix = Some((ixx, ixy));
@@ -223,8 +223,8 @@ impl EventHandler for Stage {
         }
     }
 
-    fn mouse_wheel_event(&mut self, ctx: &mut Context, dx: f32, dy: f32) {
-        self.egui_mini.mouse_wheel_event(ctx, dx, dy);
+    fn mouse_wheel_event(&mut self, _ctx: &mut Context, dx: f32, dy: f32) {
+        self.egui_mini.mouse_wheel_event(dx, dy);
     }
 
     fn char_event(
@@ -270,7 +270,7 @@ impl EventHandler for Stage {
             ctx.draw(0, 6 * self.gol.get_fields().width() as i32, 1);
         }
         ctx.end_render_pass();
-        self.egui_mini.run(ctx, |egui_ctx| {
+        self.egui_mini.run(ctx, |_mq_ctx, egui_ctx| {
             self.gol.ui(egui_ctx);
         });
         self.egui_mini.draw(ctx);
@@ -289,7 +289,7 @@ impl EventHandler for Stage {
 
 pub fn mini_main() {
     miniquad::start(conf::Conf::default(), |mut ctx| {
-        UserData::owning(Stage::new(&mut ctx), ctx)
+        Box::new(Stage::new(&mut ctx))
     });
 }
 

@@ -6,11 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-miniquad = "0.3.0-alpha.43"
+miniquad = "0.3"
 quad-rand = { git = "https://github.com/not-fl3/quad-rand"}
 getrandom = { version = "0.2", features = ["js"] }
-egui-miniquad = "0.9"
-egui = "0.17"
+egui-miniquad = "0.12"
+egui = "0.19"
 instant = "0.1"
 num-traits = "0.2"
 fixedbitset = "0.4"

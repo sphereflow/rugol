@@ -4,6 +4,6 @@ pub mod matrix_packed;
 pub mod traits;
 pub mod vec_matrix;
 
-use crate::rand::gen_range;
+use quad_rand::gen_range;
 use std::ops::RangeInclusive;
 use traits::*;

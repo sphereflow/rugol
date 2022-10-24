@@ -1,6 +1,7 @@
 use egui_miniquad::EguiMq;
 use instant::Instant;
 use miniquad::*;
+use num_traits::Zero;
 
 use crate::{matrix::traits::Matrix, RState};
 
@@ -46,7 +47,7 @@ impl Stage {
             shader,
         );
         let mut gol = <RState<7>>::new();
-        gol.donut_all_kernels(0..=1, 0);
+        gol.donut_all_kernels(0..=1, Zero::zero());
         let mut res = Stage {
             pipeline,
             bindings,

@@ -4,11 +4,10 @@ use std::{
 };
 
 use egui::{emath::Numeric, DragValue, RadioButton, Ui};
-use macroquad::rand::gen_range;
-use macroquad::rand::RandomRange;
-use macroquad::{color_u8, prelude::Color};
+use num_traits::AsPrimitive;
+use quad_rand::{gen_range, RandomRange};
 
-use crate::FieldType;
+use crate::{FieldType, color::Color, color_u8};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd)]
 pub enum CellType {
@@ -109,21 +108,21 @@ impl Default for CellTypeMap {
 impl CellTypeMap {
     pub fn new() -> Self {
         let map = vec![
-            (color_u8!(50, 20, 20, 200), 0),    // NoCell
-            (color_u8!(236, 55, 90, 200), 1),   // A
-            (color_u8!(229, 117, 35, 200), 2),  // B
-            (color_u8!(89, 229, 39, 200), 3),   // C
-            (color_u8!(228, 228, 32, 200), 4),  // D
-            (color_u8!(105, 216, 205, 200), 5), // E
-            (color_u8!(0, 94, 229, 200), 6),    // F
-            (color_u8!(190, 52, 219, 200), 7),  // G
-            (color_u8!(229, 152, 152, 200), 8), // H
+            (color_u8!(50, 20, 20, 200), 0_u8.as_()),    // NoCell
+            (color_u8!(236, 55, 90, 200), 1_u8.as_()),   // A
+            (color_u8!(229, 117, 35, 200), 2_u8.as_()),  // B
+            (color_u8!(89, 229, 39, 200), 3_u8.as_()),   // C
+            (color_u8!(228, 228, 32, 200), 4_u8.as_()),  // D
+            (color_u8!(105, 216, 205, 200), 5_u8.as_()), // E
+            (color_u8!(0, 94, 229, 200), 6_u8.as_()),    // F
+            (color_u8!(190, 52, 219, 200), 7_u8.as_()),  // G
+            (color_u8!(229, 152, 152, 200), 8_u8.as_()), // H
         ];
         dbg!(map.clone());
         CellTypeMap {
             map,
             selected_idx: 0,
-            default: (color_u8!(255, 255, 255, 255), 0),
+            default: (color_u8!(255, 255, 255, 255), 0_u8.as_()),
         }
     }
 

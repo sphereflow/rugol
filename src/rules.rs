@@ -1,6 +1,6 @@
-use std::ops::RangeInclusive;
-
 use crate::{CellType, FieldType};
+use num_traits::{AsPrimitive, One, Zero};
+use std::ops::RangeInclusive;
 
 pub struct Rule<T: Copy> {
     pub state: CellType,
@@ -30,17 +30,17 @@ pub fn classic_rules() -> Rules<FieldType> {
         rules: vec![
             Rule {
                 state: CellType::A,
-                range: 0..=1,
+                range: Zero::zero()..=One::one(),
                 transition: CellType::NoCell,
             },
             Rule {
                 state: CellType::A,
-                range: 4..=8,
+                range: 4_u8.as_()..=8_u8.as_(),
                 transition: CellType::NoCell,
             },
             Rule {
                 state: CellType::NoCell,
-                range: 3..=3,
+                range: 3_u8.as_()..=3_u8.as_(),
                 transition: CellType::A,
             },
         ],
@@ -52,17 +52,17 @@ pub fn flame_rules() -> Rules<FieldType> {
         rules: vec![
             Rule {
                 state: CellType::A,
-                range: 0..=3,
+                range: 0_u8.as_()..=3_u8.as_(),
                 transition: CellType::NoCell,
             },
             Rule {
                 state: CellType::A,
-                range: 10..=28,
+                range: 10_u8.as_()..=28_u8.as_(),
                 transition: CellType::NoCell,
             },
             Rule {
                 state: CellType::NoCell,
-                range: 6..=8,
+                range: 6_u8.as_()..=8_u8.as_(),
                 transition: CellType::A,
             },
         ],

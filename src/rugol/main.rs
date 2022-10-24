@@ -9,7 +9,7 @@ use crate::{
     cell_type::{CellType, CellTypeMap},
     fade::Fader,
     matrix::{
-        const_matrix::ConstMatrix, convolution::Convolution, traits::Matrix, vec_matrix::VecMatrix,
+        const_matrix::ConstMatrix, convolution::Convolution, traits::{Matrix, ConvolutionT}, vec_matrix::VecMatrix,
     },
     quad_tree::QuadTree,
     rules::classic_rules,

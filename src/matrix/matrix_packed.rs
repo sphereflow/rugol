@@ -1,9 +1,10 @@
+use quad_rand::gen_range;
+
 use super::{
     traits::{ConvolutionT, Matrix},
     vec_matrix::VecMatrix,
 };
 use crate::{CellType, index_set::IndexSet};
-use macroquad::rand::gen_range;
 use std::iter::repeat;
 
 #[derive(Clone, Debug)]

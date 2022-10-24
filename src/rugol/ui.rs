@@ -1,17 +1,16 @@
 use super::*;
-use egui::emath::Numeric;
-use egui::*;
-use macroquad::prelude::*;
-use std::ops::RangeInclusive;
-
 use crate::{
     cell_type::{CellType, CellTypeMap},
     fade::Fader,
     matrix::traits::Symmetry,
     quad_tree::QuadTree,
     rules::{flame_rules, Rule},
-    RState, UiMode, CELLS,
+    RState, UiMode, CELLS, color::WHITE,
 };
+use egui::emath::Numeric;
+use egui::*;
+use num_traits::{AsPrimitive, One, Zero};
+use std::ops::RangeInclusive;
 
 impl<const CW: usize> RState<CW> {
     pub fn ui(&mut self, ctx: &Context) {
@@ -169,19 +168,19 @@ impl<const CW: usize> RState<CW> {
             if ui.add(Button::new("Add rule")).clicked() {
                 self.rules.rules.push(Rule {
                     state: CellType::NoCell,
-                    range: 0..=0,
+                    range: Zero::zero()..=Zero::zero(),
                     transition: CellType::NoCell,
                 });
             }
             if CW == 5 && ui.button("Flame").clicked() {
-                self.conv_kernels[0].data = [[0; CW]; CW];
+                self.conv_kernels[0].data = [[Zero::zero(); CW]; CW];
                 for ixy in 0..CW {
                     for ixx in 0..CW {
                         if (ixx + ixy) % 2 == 1 {
                             if (1..4).contains(&ixx) && (1..4).contains(&ixy) {
-                                self.conv_kernels[0].data[ixx][ixy] = 2;
+                                self.conv_kernels[0].data[ixx][ixy] = 2_u8.as_();
                             } else {
-                                self.conv_kernels[0].data[ixx][ixy] = 1;
+                                self.conv_kernels[0].data[ixx][ixy] = One::one();
                             }
                         }
                     }
@@ -286,7 +285,7 @@ impl<const CW: usize> RState<CW> {
                             ui.horizontal(|ui| {
                                 for x in 0..conv_matrix.width() {
                                     let mut val = conv_matrix.index((x, y));
-                                    ui.add(DragValue::new(&mut val));
+                                    ui.add(DragValue::new(&mut val).speed(0.01));
                                     conv_matrix.set_at_index((x, y), val);
                                 }
                             });

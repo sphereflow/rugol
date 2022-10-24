@@ -1,3 +1,5 @@
+use num_traits::{Zero, One, AsPrimitive};
+use quad_rand::RandomRange;
 use super::*;
 use crate::CellType;
 
@@ -8,22 +10,27 @@ pub struct ConstMatrix<T: Copy + Clone, const M: usize, const N: usize> {
     pub data: [[T; N]; M],
 }
 
-impl<const M: usize, const N: usize> Matrix for ConstMatrix<u8, M, N> {
-    fn new(_width: usize, _height: usize) -> ConstMatrix<u8, M, N> {
-        ConstMatrix { data: [[0; N]; M] }
+impl<T: Copy + Zero + One + RandomRange + 'static, const M: usize, const N: usize> Matrix for ConstMatrix<T, M, N> 
+where
+u8: AsPrimitive<T>,
+{
+    type Output = T;
+
+    fn new(_width: usize, _height: usize) -> ConstMatrix<T, M, N> {
+        ConstMatrix { data: [[Zero::zero(); N]; M] }
     }
 
-    fn new_std_conv_matrix(_width: usize, _height: usize) -> ConstMatrix<u8, M, N> {
-        let mut data = [[1; N]; M];
-        data[N / 2][M / 2] = 0;
+    fn new_std_conv_matrix(_width: usize, _height: usize) -> ConstMatrix<T, M, N> {
+        let mut data = [[One::one(); N]; M];
+        data[N / 2][M / 2] = Zero::zero();
         ConstMatrix { data }
     }
 
-    fn new_random(_width: usize, _height: usize) -> ConstMatrix<u8, M, N> {
-        let mut data = [[0; N]; M];
-        for slice in data.iter_mut(){
+    fn new_random(_width: usize, _height: usize) -> ConstMatrix<T, M, N> {
+        let mut data = [[Zero::zero(); N]; M];
+        for slice in data.iter_mut() {
             for item in slice {
-                *item = gen_range(0_u8, 2);
+                *item = gen_range(Zero::zero(), 2_u8.as_());
             }
         }
         ConstMatrix { data }
@@ -33,66 +40,11 @@ impl<const M: usize, const N: usize> Matrix for ConstMatrix<u8, M, N> {
         _width: usize,
         _height: usize,
         range: RangeInclusive<Self::Output>,
-    ) -> ConstMatrix<u8, M, N> {
-        let mut data = [[0; N]; M];
+    ) -> ConstMatrix<T, M, N> {
+        let mut data = [[Zero::zero(); N]; M];
         for slice in data.iter_mut() {
             for item in slice.iter_mut() {
-                *item = gen_range(*range.start(), range.end() + 1);
-            }
-        }
-        ConstMatrix { data }
-    }
-
-    type Output = u8;
-
-    fn index(&self, (x, y): (usize, usize)) -> Self::Output {
-        self.data[y][x]
-    }
-
-    fn set_at_index(&mut self, (x, y): (usize, usize), value: Self::Output) {
-        self.data[y][x] = value;
-    }
-
-    fn width(&self) -> usize {
-        N
-    }
-
-    fn height(&self) -> usize {
-        M
-    }
-}
-
-impl<const M: usize, const N: usize> Matrix for ConstMatrix<i8, M, N> {
-    type Output = i8;
-    fn new(_width: usize, _height: usize) -> ConstMatrix<i8, M, N> {
-        ConstMatrix { data: [[0; N]; M] }
-    }
-
-    fn new_std_conv_matrix(_width: usize, _height: usize) -> ConstMatrix<i8, M, N> {
-        let mut data = [[1; N]; M];
-        data[N / 2][M / 2] = 0;
-        ConstMatrix { data }
-    }
-
-    fn new_random(_width: usize, _height: usize) -> ConstMatrix<i8, M, N> {
-        let mut data = [[0; N]; M];
-        for slice in data.iter_mut() {
-            for item in slice.iter_mut() {
-                *item = gen_range::<i16>(0, 2) as i8;
-            }
-        }
-        ConstMatrix { data }
-    }
-
-    fn new_random_range(
-        _width: usize,
-        _height: usize,
-        range: RangeInclusive<Self::Output>,
-    ) -> ConstMatrix<i8, M, N> {
-        let mut data = [[0; N]; M];
-        for slice in data.iter_mut() {
-            for item in slice.iter_mut() {
-                *item = gen_range::<i16>(*range.start() as i16, *range.end() as i16 + 1) as i8;
+                *item = gen_range(*range.start(), *range.end() + One::one());
             }
         }
         ConstMatrix { data }

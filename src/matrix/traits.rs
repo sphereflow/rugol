@@ -1,5 +1,5 @@
 use super::vec_matrix::VecMatrix;
-use crate::{CellType, index_set::IndexSet};
+use crate::{index_set::IndexSet, CellType};
 use std::ops::RangeInclusive;
 
 pub trait Matrix {

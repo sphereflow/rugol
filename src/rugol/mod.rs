@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use instant::Instant;
 
 use crate::{
@@ -7,17 +9,19 @@ use crate::{
     fade::Fader,
     matrix::{traits::Matrix, vec_matrix::VecMatrix},
     quad_tree::{Node, QuadTree},
-    rules::Rules,
+    rules::RuleSet,
+    save_file::SaveFile,
     FieldType,
 };
 
 pub mod main;
 pub mod ui;
 
-pub struct RugolState<M: Matrix + Clone, C: Matrix, N: Matrix<Output = Color>> {
+/// <Field type matrix, Convolution matrix, Color matrix>
+pub struct RugolState<M: Matrix + Clone, C: Matrix, N: Matrix<Output = Color>, const CW: usize> {
     conv_kernels: [C; 9],
     pub cell_type_map: CellTypeMap,
-    rules: Rules<FieldType>,
+    rules: RuleSet<FieldType>,
     /// Vec of matrices with `FieldType` elements
     fields_vec: Vec<M>,
     /// Vec of matrices with `CellType` elements
@@ -34,4 +38,7 @@ pub struct RugolState<M: Matrix + Clone, C: Matrix, N: Matrix<Output = Color>> {
     quad_tree: QuadTree<Node>,
     pub inst: Instant,
     pub frame_time: f64,
+    pub load_file_path: Arc<Mutex<Option<String>>>,
+    pub save_file_path: Arc<Mutex<Option<String>>>,
+    pub save_file: Option<SaveFile<CW>>,
 }

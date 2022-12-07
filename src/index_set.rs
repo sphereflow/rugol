@@ -27,7 +27,8 @@ impl IndexSet {
         let (y_start, y_end) = range.end();
         for ixy in *y_start..(y_end + 1) {
             let base_ix = ixy * self.matrix_width;
-            self.indices.set_range((base_ix + x_start)..(base_ix + x_end + 1), true);
+            self.indices
+                .set_range((base_ix + x_start)..(base_ix + x_end + 1), true);
         }
     }
 
@@ -53,12 +54,8 @@ impl Iterator for IndexSetIter<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
-            Some(raw_index) => {
-                Some((raw_index % self.matrix_width, raw_index / self.matrix_width))
-            }
-            None => {
-                None
-            }
+            Some(raw_index) => Some((raw_index % self.matrix_width, raw_index / self.matrix_width)),
+            None => None,
         }
     }
 }

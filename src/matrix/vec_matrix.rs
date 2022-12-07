@@ -2,9 +2,10 @@ use super::*;
 use crate::{color::Color, CellType};
 use num_traits::{AsPrimitive, One, Zero};
 use quad_rand::RandomRange;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VecMatrix<T: Copy + Clone> {
     pub data: Vec<T>,
     width: usize,

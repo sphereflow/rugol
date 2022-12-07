@@ -4,7 +4,7 @@ use super::{
     traits::{ConvolutionT, Matrix},
     vec_matrix::VecMatrix,
 };
-use crate::{CellType, index_set::IndexSet};
+use crate::{index_set::IndexSet, CellType};
 use std::iter::repeat;
 
 #[derive(Clone, Debug)]

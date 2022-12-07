@@ -1,15 +1,16 @@
 use std::{
     fmt::Display,
-    ops::{Index, RangeInclusive},
+    ops::{Add, Index, Mul, RangeInclusive},
 };
 
 use egui::{emath::Numeric, DragValue, RadioButton, Ui};
-use num_traits::AsPrimitive;
+use num_traits::{AsPrimitive, Bounded, One, Zero};
 use quad_rand::{gen_range, RandomRange};
+use serde::{Deserialize, Serialize};
 
-use crate::{FieldType, color::Color, color_u8};
+use crate::{color::Color, color_u8, FieldType};
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Serialize, Deserialize)]
 pub enum CellType {
     NoCell,
     A,
@@ -93,6 +94,49 @@ impl RandomRange for CellType {
     }
 }
 
+impl Zero for CellType {
+    fn zero() -> Self {
+        CellType::NoCell
+    }
+
+    fn is_zero(&self) -> bool {
+        *self == CellType::NoCell
+    }
+}
+
+impl Add for CellType {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self::try_from((self.as_index() + rhs.as_index()) % 9).unwrap()
+    }
+}
+
+impl One for CellType {
+    fn one() -> Self {
+        CellType::A
+    }
+}
+
+impl Mul for CellType {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self::try_from((self.as_index() * rhs.as_index()) % 9).unwrap()
+    }
+}
+
+impl Bounded for CellType {
+    fn min_value() -> Self {
+        CellType::NoCell
+    }
+
+    fn max_value() -> Self {
+        CellType::H
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct CellTypeMap {
     map: Vec<(Color, FieldType)>,
     selected_idx: usize,

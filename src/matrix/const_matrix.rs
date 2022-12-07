@@ -1,23 +1,37 @@
-use num_traits::{Zero, One, AsPrimitive};
-use quad_rand::RandomRange;
 use super::*;
 use crate::CellType;
+use num_traits::{AsPrimitive, One, Zero};
+use quad_rand::RandomRange;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_with::serde_as;
 
 /// row major array of arrays
 /// N: width, M: height
-#[derive(Debug, Clone, Copy)]
-pub struct ConstMatrix<T: Copy + Clone, const M: usize, const N: usize> {
+#[serde_as]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct ConstMatrix<
+    T: Copy + Clone + Serialize + DeserializeOwned,
+    const M: usize,
+    const N: usize,
+> {
+    #[serde_as(as = "[[_;N];M]")]
     pub data: [[T; N]; M],
 }
 
-impl<T: Copy + Zero + One + RandomRange + 'static, const M: usize, const N: usize> Matrix for ConstMatrix<T, M, N> 
+impl<
+        T: Copy + Zero + One + RandomRange + Serialize + DeserializeOwned + 'static,
+        const M: usize,
+        const N: usize,
+    > Matrix for ConstMatrix<T, M, N>
 where
-u8: AsPrimitive<T>,
+    u8: AsPrimitive<T>,
 {
     type Output = T;
 
     fn new(_width: usize, _height: usize) -> ConstMatrix<T, M, N> {
-        ConstMatrix { data: [[Zero::zero(); N]; M] }
+        ConstMatrix {
+            data: [[Zero::zero(); N]; M],
+        }
     }
 
     fn new_std_conv_matrix(_width: usize, _height: usize) -> ConstMatrix<T, M, N> {

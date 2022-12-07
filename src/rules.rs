@@ -1,18 +1,21 @@
 use crate::{CellType, FieldType};
 use num_traits::{AsPrimitive, One, Zero};
+use serde::{Deserialize, Serialize};
 use std::ops::RangeInclusive;
 
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Rule<T: Copy> {
     pub state: CellType,
     pub range: RangeInclusive<T>,
     pub transition: CellType,
 }
 
-pub struct Rules<T: Copy> {
+#[derive(Serialize, Deserialize, Clone)]
+pub struct RuleSet<T: Copy> {
     pub rules: Vec<Rule<T>>,
 }
 
-impl<T: Copy + PartialEq + PartialOrd> Rules<T> {
+impl<T: Copy + PartialEq + PartialOrd> RuleSet<T> {
     pub fn apply(&self, initial_value: CellType, convolution: T) -> CellType {
         for rule in &self.rules {
             if rule.state == initial_value && rule.range.contains(&convolution) {
@@ -25,8 +28,8 @@ impl<T: Copy + PartialEq + PartialOrd> Rules<T> {
     }
 }
 
-pub fn classic_rules() -> Rules<FieldType> {
-    Rules {
+pub fn classic_rules() -> RuleSet<FieldType> {
+    RuleSet {
         rules: vec![
             Rule {
                 state: CellType::A,
@@ -47,8 +50,8 @@ pub fn classic_rules() -> Rules<FieldType> {
     }
 }
 
-pub fn flame_rules() -> Rules<FieldType> {
-    Rules {
+pub fn flame_rules() -> RuleSet<FieldType> {
+    RuleSet {
         rules: vec![
             Rule {
                 state: CellType::A,

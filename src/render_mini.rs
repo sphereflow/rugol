@@ -3,7 +3,7 @@ use instant::Instant;
 use miniquad::*;
 use num_traits::Zero;
 
-use crate::{matrix::traits::Matrix, RState};
+use crate::{matrix::traits::Matrix, RState, CONVOLUTION_WIDTH};
 
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
@@ -26,7 +26,7 @@ struct Stage {
     vertices: Vec<Vec<Vertex>>,
     vertex_buffers: Vec<Buffer>,
     index_buffer: Buffer,
-    gol: RState<7>,
+    gol: RState<CONVOLUTION_WIDTH>,
     bdraw: bool,
 }
 
@@ -46,7 +46,7 @@ impl Stage {
             ],
             shader,
         );
-        let mut gol = <RState<7>>::new();
+        let mut gol = <RState<CONVOLUTION_WIDTH>>::new();
         gol.donut_all_kernels(0..=1, Zero::zero());
         let mut res = Stage {
             pipeline,
@@ -153,6 +153,7 @@ impl Stage {
 
 impl EventHandler for Stage {
     fn update(&mut self, ctx: &mut Context) {
+        ctx.clear(Some((0., 0., 0., 1.)), None, None);
         if self.gol.config.bnew_size {
             self.new_size_selected(ctx);
             self.gol.config.bnew_size = false;

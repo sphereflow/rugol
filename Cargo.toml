@@ -7,14 +7,24 @@ edition = "2021"
 
 [dependencies]
 miniquad = "0.3"
-quad-rand = { git = "https://github.com/not-fl3/quad-rand"}
-getrandom = { version = "0.2", features = ["js"] }
+quad-rand = { git = "https://github.com/not-fl3/quad-rand" }
 egui-miniquad = "0.12"
 egui = "0.19"
 instant = "0.1"
 num-traits = "0.2"
 fixedbitset = "0.4"
+serde =  { version = "1", features = ["derive"] }
+serde_with = "2.1"
+bincode = "1.3.3"
+rfd = "0.10.0"
+pollster = "0.2"
+flate2 = "1.0.25"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2.83"
+wasm-bindgen-futures = "0.4.31"
+web-sys = "0.3.60"
+js-sys = "0.3.60"
 
 [profile.release]
-opt-level = 's'
 lto = true

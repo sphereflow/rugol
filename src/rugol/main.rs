@@ -8,12 +8,17 @@ use crate::{
     app_config::AppConfig,
     cell_type::{CellType, CellTypeMap},
     fade::Fader,
+    index_set::IndexSet,
     matrix::{
-        const_matrix::ConstMatrix, convolution::Convolution, traits::{Matrix, ConvolutionT}, vec_matrix::VecMatrix,
+        const_matrix::ConstMatrix,
+        convolution::Convolution,
+        traits::{ConvolutionT, Matrix},
+        vec_matrix::VecMatrix,
     },
     quad_tree::QuadTree,
     rules::classic_rules,
-    BaseMatrix, FieldType, RState, CELLS, index_set::IndexSet,
+    save_file::ConvMatrixE,
+    BaseMatrix, FieldType, RState, CELLS,
 };
 
 impl<const CW: usize> RState<CW> {
@@ -54,6 +59,9 @@ impl<const CW: usize> RState<CW> {
             quad_tree: QuadTree::new(CELLS[fields_vec_ix].0, CELLS[fields_vec_ix].1, 5),
             inst: Instant::now(),
             frame_time: 0.,
+            load_file_path: Arc::new(Mutex::new(None)),
+            save_file_path: Arc::new(Mutex::new(None)),
+            save_file: None,
         }
     }
 
@@ -119,6 +127,47 @@ impl<const CW: usize> RState<CW> {
             }
         }
         self.config.bupdate = true;
+    }
+
+    pub fn load_save_file(&mut self) {
+        if let Some(save_file) = self.save_file.as_mut() {
+            if let (Some(convolution), true) =
+                (save_file.convolution.take(), save_file.include_convolution)
+            {
+                match convolution {
+                    ConvMatrixE::Single(conv) => self.conv_kernels[0] = conv,
+                    ConvMatrixE::Multiple(convs) => self.conv_kernels = convs,
+                }
+            }
+            if let (Some(rules), true) = (save_file.rules.take(), save_file.include_rules) {
+                self.rules = rules;
+            }
+            if let (Some(map), true) = (
+                save_file.cell_type_map.take(),
+                save_file.include_cell_type_map,
+            ) {
+                self.cell_type_map = map;
+            }
+            if let (Some(cells), true) = (save_file.cells.take(), save_file.include_cells) {
+                self.cell_type_vec = cells;
+            }
+            for (fields, cells) in self
+                .fields_vec
+                .iter_mut()
+                .zip(self.cell_type_vec.iter_mut())
+            {
+                self.quad_tree.everything_changed();
+                let w = fields.width();
+                let h = fields.height();
+                for x in 0..w {
+                    for y in 0..h {
+                        fields.set_at_index((x, y), self.cell_type_map[cells.index((x, y))].1);
+                    }
+                }
+            }
+            self.config.bupdate = true;
+            self.save_file = None;
+        }
     }
 
     pub fn donut_all_kernels(&mut self, range: RangeInclusive<usize>, val: FieldType) {

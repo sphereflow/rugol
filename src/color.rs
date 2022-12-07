@@ -1,7 +1,8 @@
 pub use colors::*;
+use serde::{Deserialize, Serialize};
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Color {
     pub r: f32,
     pub g: f32,
@@ -169,8 +170,6 @@ pub fn rgb_to_hsl(color: Color) -> (f32, f32, f32) {
     }
 
     let mut h: f32;
-    let s: f32;
-    let l: f32;
 
     let Color { r, g, b, .. } = color;
 
@@ -178,7 +177,7 @@ pub fn rgb_to_hsl(color: Color) -> (f32, f32, f32) {
     let min = min(min(r, g), b);
 
     // Luminosity is the average of the max and min rgb color intensities.
-    l = (max + min) / 2.0;
+    let l = (max + min) / 2.0;
 
     // Saturation
     let delta: f32 = max - min;
@@ -188,11 +187,11 @@ pub fn rgb_to_hsl(color: Color) -> (f32, f32, f32) {
     }
 
     // it's not gray
-    if l < 0.5 {
-        s = delta / (max + min);
+    let s = if l < 0.5 {
+        delta / (max + min)
     } else {
-        s = delta / (2.0 - max - min);
-    }
+        delta / (2.0 - max - min)
+    };
 
     // Hue
     let r2 = (((max - r) / 6.0) + (delta / 2.0)) / delta;
@@ -206,9 +205,9 @@ pub fn rgb_to_hsl(color: Color) -> (f32, f32, f32) {
     };
 
     // Fix wraparounds
-    if h < 0 as f32 {
+    if h < 0_f32 {
         h += 1.0;
-    } else if h > 1 as f32 {
+    } else if h > 1_f32 {
         h -= 1.0;
     }
 

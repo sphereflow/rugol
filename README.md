@@ -29,7 +29,7 @@ graph TD
         ctm_lookup -.-> color & nftv
     end
     r-->|no|nextrule
-    matches{=\n this Rules\n CellTypeValue?}-->|yes|acv
+    matches{=<br> this Rules<br> CellTypeValue?}-->|yes|acv
     subgraph Rule [Rule: part of a list of Rules]
         matches-->|no|nextrule(next Rule)
         nctv(Rule: new CellType value)-.->ctm_lookup

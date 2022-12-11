@@ -8,8 +8,9 @@ edition = "2021"
 [dependencies]
 miniquad = "0.3"
 quad-rand = { git = "https://github.com/not-fl3/quad-rand" }
-egui-miniquad = "0.12"
-egui = "0.19"
+egui-miniquad = "0.13"
+egui = "0.20"
+egui_dock = "0.3"
 instant = "0.1"
 num-traits = "0.2"
 fixedbitset = "0.4"

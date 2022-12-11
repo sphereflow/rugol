@@ -1,11 +1,13 @@
-use super::{
-    traits::{ConvolutionT, Matrix},
-    vec_matrix::VecMatrix,
-};
+use super::traits::ConvolutionT;
 use crate::{index_set::IndexSet, CellType};
+use matrices::traits::*;
+use matrices::vec_matrix::VecMatrix;
 use num_traits::{AsPrimitive, One, Zero};
 use quad_rand::{gen_range, RandomRange};
-use std::ops::{AddAssign, Mul};
+use std::{
+    iter,
+    ops::{AddAssign, Mul},
+};
 
 // the kernel should be a square matrix
 #[derive(Debug, Clone)]
@@ -17,8 +19,8 @@ pub struct Convolution<T: Copy + Clone, const KW: usize> {
 
 impl<
         T: Copy + Zero + Mul + AddAssign + Mul<Output = T>,
-        Conv: Matrix<Output = T>,
-        Acc: Matrix<Output = T>,
+        Conv: Matrix<T>,
+        Acc: Matrix<T>,
         const KW: usize,
     > ConvolutionT<Conv, T, Acc> for Convolution<T, KW>
 {
@@ -79,22 +81,23 @@ impl<T: Copy, const KW: usize> Convolution<T, KW> {
 }
 
 // KW : width of the convolution kernel
-impl<T: Copy + Zero + One + RandomRange + 'static, const KW: usize> Matrix for Convolution<T, KW>
-where
-    u8: AsPrimitive<T>,
-{
-    type Output = T;
-    fn new(width: usize, height: usize) -> Self {
-        let base: Vec<Vec<T>> = vec![vec![Zero::zero(); KW.pow(2)]; width * height];
+impl<T: Copy + Default, const KW: usize> MatrixDefault<T> for Convolution<T, KW> {
+    fn new_default(width: usize, height: usize) -> Self {
+        let base: Vec<Vec<T>> = vec![vec![T::default(); KW.pow(2)]; width * height];
         Convolution {
             width,
             height,
             base,
         }
     }
+}
 
+impl<T: Copy + RandomRange + Zero + 'static, const KW: usize> MatrixRandom<T> for Convolution<T, KW>
+where
+    u8: AsPrimitive<T>,
+{
     fn new_random(width: usize, height: usize) -> Self {
-        let mut res = Self::new(width, height);
+        let mut res = Self::new(width, height, Zero::zero());
         for ixx in 0..width {
             for ixy in 0..height {
                 let random_value = gen_range(Zero::zero(), 2_u8.as_());
@@ -104,12 +107,8 @@ where
         res
     }
 
-    fn new_random_range(
-        width: usize,
-        height: usize,
-        range: std::ops::RangeInclusive<Self::Output>,
-    ) -> Self {
-        let mut res = Self::new(width, height);
+    fn new_random_range(width: usize, height: usize, range: std::ops::RangeInclusive<T>) -> Self {
+        let mut res = Self::new(width, height, Zero::zero());
         for ixx in 0..width {
             for ixy in 0..height {
                 let random_value = gen_range(*range.start(), *range.end());
@@ -118,7 +117,9 @@ where
         }
         res
     }
+}
 
+impl<T: Copy + Zero + One, const KW: usize> MatrixStdConv<T> for Convolution<T, KW> {
     fn new_std_conv_matrix(width: usize, height: usize) -> Self {
         let mut base = vec![vec![One::one(); KW.pow(2)]; width * height];
         let wh = KW / 2;
@@ -129,13 +130,40 @@ where
             base,
         }
     }
+}
 
-    fn index(&self, (ixx, ixy): (usize, usize)) -> Self::Output {
+impl<T: Copy, const KW: usize> Matrix<T> for Convolution<T, KW> {
+    fn new(width: usize, height: usize, value: T) -> Self {
+        let base: Vec<Vec<T>> = vec![vec![value; KW.pow(2)]; width * height];
+        Convolution {
+            width,
+            height,
+            base,
+        }
+    }
+
+    fn new_with<F: FnMut((usize, usize)) -> T>(width: usize, height: usize, mut f: F) -> Self {
+        let mut base = Vec::with_capacity(height);
+        for ixy in 0..height {
+            let mut intermediate = Vec::with_capacity(width);
+            for ixx in 0..width {
+                intermediate.push(f((ixx, ixy)));
+            }
+            base.push(intermediate);
+        }
+        Convolution {
+            width,
+            height,
+            base,
+        }
+    }
+
+    fn index(&self, (ixx, ixy): (usize, usize)) -> T {
         let wh = KW / 2;
         self.base[ixy * self.width + ixx][wh * KW + wh]
     }
 
-    fn set_at_index(&mut self, ix: (usize, usize), value: Self::Output) {
+    fn set_at_index(&mut self, ix: (usize, usize), value: T) {
         Self::set_base_at_index(&mut self.base, self.width, self.height, ix, value);
     }
 

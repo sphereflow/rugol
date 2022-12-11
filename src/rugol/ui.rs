@@ -1,11 +1,11 @@
 use super::*;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::save_file::*;
+use matrices::traits::Symmetry;
 use crate::{
     cell_type::{CellType, CellTypeMap},
     color::WHITE,
     fade::Fader,
-    matrix::traits::Symmetry,
     quad_tree::QuadTree,
     rules::{flame_rules, Rule},
     RState, UiMode, CELLS, WARN_TEXT,

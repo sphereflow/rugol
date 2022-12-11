@@ -1,12 +1,12 @@
 use crate::{
     cell_type::{CellType, CellTypeMap},
-    matrix::vec_matrix::VecMatrix,
     rules::RuleSet,
     ConvolutionMatrix, FieldType,
 };
-use flate2::{write::ZlibEncoder, Compression, read::ZlibDecoder};
-use std::io::{Write, Read};
+use flate2::{read::ZlibDecoder, write::ZlibEncoder, Compression};
+use matrices::vec_matrix::VecMatrix;
 use serde::{Deserialize, Serialize};
+use std::io::{Read, Write};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum ConvMatrixE<const CW: usize> {
@@ -33,7 +33,8 @@ impl<const CW: usize> SaveFile<CW> {
         e.write_all(&bytes)?;
         let mut file = std::fs::File::create(filename)?;
         let encoded = e.finish()?;
-        file.write_all(&encoded).map_err(|err| Box::new(bincode::ErrorKind::Io(err)))
+        file.write_all(&encoded)
+            .map_err(|err| Box::new(bincode::ErrorKind::Io(err)))
     }
 
     pub fn load_from_bytes(encoded: &[u8]) -> Result<SaveFile<CW>, bincode::Error> {

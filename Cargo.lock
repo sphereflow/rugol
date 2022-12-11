@@ -635,6 +635,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "matrices"
+version = "0.1.0"
+source = "git+https://github.com/sphereflow/matrices#434f5290372931a5f24f1c6b44973e48fbe4be4c"
+dependencies = [
+ "num-traits",
+ "quad-rand 0.2.1 (git+https://github.com/not-fl3/quad-rand)",
+ "serde",
+ "serde_with",
+]
+
+[[package]]
 name = "memchr"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -930,6 +941,7 @@ dependencies = [
  "flate2",
  "instant",
  "js-sys",
+ "matrices",
  "miniquad",
  "num-traits",
  "pollster",

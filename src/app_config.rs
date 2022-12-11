@@ -1,5 +1,6 @@
-use crate::{cell_type::CellType, matrix::traits::Symmetry, UiMode};
+use crate::{cell_type::CellType, UiMode};
 use instant::{Duration, Instant};
+use matrices::traits::Symmetry;
 use std::ops::RangeInclusive;
 
 pub struct AppConfig {

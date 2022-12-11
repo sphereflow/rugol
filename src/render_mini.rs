@@ -1,9 +1,10 @@
 use egui_miniquad::EguiMq;
 use instant::Instant;
+use matrices::traits::Matrix;
 use miniquad::*;
 use num_traits::Zero;
 
-use crate::{matrix::traits::Matrix, RState, CONVOLUTION_WIDTH};
+use crate::{RState, CONVOLUTION_WIDTH};
 
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]

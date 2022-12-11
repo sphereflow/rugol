@@ -1,19 +1,20 @@
-use crate::{cell_type::CellTypeMap, color::Color, matrix::traits::Matrix, CellType};
+use crate::{cell_type::CellTypeMap, color::Color, CellType};
+use matrices::traits::Matrix;
 
-pub struct Fader<M: Matrix> {
+pub struct Fader<M: Matrix<Color>> {
     color_matrix: M,
     pub mix_factor: f32,
 }
 
-impl<M: Matrix<Output = Color>> Fader<M> {
+impl<M: Matrix<Color>> Fader<M> {
     pub fn new(width: usize, height: usize) -> Fader<M> {
         Fader {
-            color_matrix: M::new(width, height),
+            color_matrix: M::new(width, height, Color::from_rgba(0, 0, 0, 0)),
             mix_factor: 0.7,
         }
     }
 
-    pub fn add<N: Matrix<Output = CellType>>(&mut self, val_matrix: &N, cmap: &CellTypeMap) {
+    pub fn add<N: Matrix<CellType>>(&mut self, val_matrix: &N, cmap: &CellTypeMap) {
         if val_matrix.height() != self.color_matrix.height()
             || val_matrix.width() != self.color_matrix.width()
         {

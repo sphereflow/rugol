@@ -1,20 +1,22 @@
+use crate::convolution::*;
 use cell_type::CellType;
 use color::Color;
-use matrix::{const_matrix::*, convolution::Convolution, vec_matrix::VecMatrix};
+use matrices::{const_matrix::*, vec_matrix::VecMatrix};
 use render_mini::mini_main;
 use rugol::RugolState;
 
 pub mod app_config;
 pub mod cell_type;
 pub mod color;
+pub mod convolution;
 pub mod fade;
 pub mod index_set;
-pub mod matrix;
 pub mod quad_tree;
 pub mod render_mini;
 pub mod rugol;
 pub mod rules;
 pub mod save_file;
+pub mod traits;
 
 const CELLS: [(usize, usize); 5] = [(10, 5), (100, 50), (200, 100), (400, 200), (800, 400)];
 static WARN_TEXT: &str = "Warning: Depending on the settings this program may produce bright flashing and/or pulsating images";

@@ -3,23 +3,20 @@ use std::ops::RangeInclusive;
 use instant::Instant;
 
 use super::*;
-
 use crate::{
     app_config::AppConfig,
     cell_type::{CellType, CellTypeMap},
+    convolution::Convolution,
     fade::Fader,
     index_set::IndexSet,
-    matrix::{
-        const_matrix::ConstMatrix,
-        convolution::Convolution,
-        traits::{ConvolutionT, Matrix},
-        vec_matrix::VecMatrix,
-    },
     quad_tree::QuadTree,
     rules::classic_rules,
     save_file::ConvMatrixE,
+    traits::ConvolutionT,
     BaseMatrix, FieldType, RState, CELLS,
 };
+use matrices::traits::*;
+use matrices::{const_matrix::ConstMatrix, vec_matrix::VecMatrix};
 
 impl<const CW: usize> RState<CW> {
     pub fn new() -> Self {
@@ -31,7 +28,7 @@ impl<const CW: usize> RState<CW> {
             let mut ct = Vec::new();
             let mut acc = Vec::new();
             for (cw, ch) in CELLS {
-                let mut field_type_matrix = Convolution::new(cw, ch);
+                let mut field_type_matrix = Convolution::new(cw, ch, 0.);
                 let cell_type_matrix: VecMatrix<CellType> = VecMatrix::new_random(cw, ch);
                 for x in 0..cw {
                     for y in 0..ch {
@@ -41,7 +38,7 @@ impl<const CW: usize> RState<CW> {
                 }
                 f.push(field_type_matrix);
                 ct.push(cell_type_matrix);
-                acc.push(VecMatrix::new(cw, ch));
+                acc.push(VecMatrix::new(cw, ch, 0.));
             }
             (f, ct, acc)
         };

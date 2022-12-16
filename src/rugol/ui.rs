@@ -1,10 +1,8 @@
-use super::*;
+use super::conv_tabs::ConvWrapper;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::save_file::*;
-use matrices::traits::Symmetry;
 use crate::{
     cell_type::{CellType, CellTypeMap},
-    color::WHITE,
     fade::Fader,
     quad_tree::QuadTree,
     rules::{flame_rules, Rule},
@@ -12,6 +10,8 @@ use crate::{
 };
 use egui::emath::Numeric;
 use egui::*;
+use egui_dock::DockArea;
+use matrices::traits::Symmetry;
 use num_traits::{AsPrimitive, One, Zero};
 #[cfg(not(target_arch = "wasm32"))]
 use rfd::{AsyncFileDialog, FileDialog};
@@ -284,125 +284,23 @@ impl<const CW: usize> RState<CW> {
     }
 
     fn edit_conv_matrix_ui(&mut self, ui: &mut Ui) {
-        let kernel_len = self.conv_kernels.len();
-        let mut copy_indices: Vec<(usize, usize)> = Vec::new();
-        let mut copy_to_all = None;
-        for (cix, conv_matrix) in self.conv_kernels.iter_mut().enumerate() {
-            let collapsing_text = if self.config.bsingle_kernel {
-                "Convolution Matrix".into()
-            } else {
-                format!("Convolution Matrix: {}", cix)
-            };
-            ui.collapsing(collapsing_text, |ui| {
-                ui.horizontal(|ui| {
-                    ui.vertical(|ui| {
-                        for y in 0..conv_matrix.height() {
-                            ui.horizontal(|ui| {
-                                for x in 0..conv_matrix.width() {
-                                    let val = conv_matrix.index((x, y));
-                                    //ui.add(DragValue::new(&mut val));
-                                    let col = match self.cell_type_map.color_for_value(val) {
-                                        Some(col) => col,
-                                        None => WHITE,
-                                    };
-                                    let text_col = if (col.r + col.g + col.b) < 0.5 {
-                                        Color32::GRAY
-                                    } else {
-                                        Color32::BLACK
-                                    };
-                                    if ui
-                                        .add(
-                                            Label::new(
-                                                RichText::new(format!("{}", val))
-                                                    .color(text_col)
-                                                    .strong()
-                                                    .heading()
-                                                    .background_color(Rgba::from_rgb(
-                                                        col.r, col.g, col.b,
-                                                    )),
-                                            )
-                                            .sense(Sense::click_and_drag()),
-                                        )
-                                        .dragged()
-                                    {
-                                        if self.config.sym_editting {
-                                            conv_matrix.set_at_index_sym(
-                                                self.config.symmetry,
-                                                (x, y),
-                                                self.cell_type_map.get_selected_rules_val(),
-                                            )
-                                        } else {
-                                            conv_matrix.set_at_index(
-                                                (x, y),
-                                                self.cell_type_map.get_selected_rules_val(),
-                                            );
-                                        }
-                                    }
-                                }
-                            });
-                        }
-                    });
-                    ui.vertical(|ui| {
-                        for y in 0..conv_matrix.height() {
-                            ui.horizontal(|ui| {
-                                for x in 0..conv_matrix.width() {
-                                    let mut val = conv_matrix.index((x, y));
-                                    ui.add(DragValue::new(&mut val).speed(0.01));
-                                    conv_matrix.set_at_index((x, y), val);
-                                }
-                            });
-                        }
-                    });
-
-                    // copying of kernels
-                    if !self.config.bsingle_kernel {
-                        ui.vertical(|ui| {
-                            // copy up / down
-                            if cix > 0 && ui.button("▲").clicked() {
-                                copy_indices = vec![(cix, cix - 1)];
-                            }
-
-                            if cix < (kernel_len - 1) && ui.button("⯆").clicked() {
-                                copy_indices = vec![(cix, cix + 1)];
-                            }
-
-                            ui.horizontal(|ui| {
-                                // copy to range
-                                if ui.button("copy to range").clicked() {
-                                    let ix_range =
-                                        self.config.conv_matrix_copy_range.start().as_index()
-                                            ..=self.config.conv_matrix_copy_range.end().as_index();
-                                    for ix in ix_range {
-                                        copy_indices.push((cix, ix));
-                                    }
-                                }
-                                self.config.conv_matrix_copy_range = Self::edit_range(
-                                    ui,
-                                    self.config.conv_matrix_copy_range.clone(),
-                                );
-                            });
-
-                            // copy to all
-                            if ui.button("copy to all").clicked() {
-                                copy_to_all = Some(cix);
-                            }
-                        });
-                    }
-                });
+        let mut convolution_wrapper = ConvWrapper {
+            inner: &mut self.conv_kernels,
+            config: &mut self.config,
+            cell_type_map: &mut self.cell_type_map,
+            copy_indices: Vec::new(),
+            copy_to_all: None,
+        };
+        let mut style = egui_dock::Style::from_egui(ui.ctx().style().as_ref());
+        style.show_close_buttons = false;
+        Window::new("convolution matrices").show(ui.ctx(), |ui| {
+            ui.vertical(|ui| {
+                DockArea::new(&mut self.tree)
+                    .style(style)
+                    .show_inside(ui, &mut convolution_wrapper);
             });
-            if self.config.bsingle_kernel {
-                break;
-            }
-        }
-        for (from, to) in copy_indices {
-            self.conv_kernels[to] = self.conv_kernels[from];
-        }
-        if let Some(from) = copy_to_all {
-            let from_kernel = self.conv_kernels[from];
-            for kernel in self.conv_kernels.iter_mut() {
-                *kernel = from_kernel;
-            }
-        }
+        });
+        convolution_wrapper.copy_kernels();
     }
 
     fn edit_symmetry(&mut self, ui: &mut Ui) {

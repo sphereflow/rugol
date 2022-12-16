@@ -8,10 +8,11 @@ use crate::{
     save_file::SaveFile,
     FieldType,
 };
+use egui_dock::Tree;
 use instant::Instant;
 use matrices::{traits::Matrix, vec_matrix::VecMatrix};
-use std::sync::{Arc, Mutex};
 
+pub mod conv_tabs;
 pub mod main;
 pub mod ui;
 
@@ -41,7 +42,6 @@ pub struct RugolState<
     quad_tree: QuadTree<Node>,
     pub inst: Instant,
     pub frame_time: f64,
-    pub load_file_path: Arc<Mutex<Option<String>>>,
-    pub save_file_path: Arc<Mutex<Option<String>>>,
     pub save_file: Option<SaveFile<CW>>,
+    tree: Tree<usize>,
 }

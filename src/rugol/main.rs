@@ -1,5 +1,6 @@
 use std::ops::RangeInclusive;
 
+use egui_dock::Tree;
 use instant::Instant;
 
 use super::*;
@@ -42,6 +43,11 @@ impl<const CW: usize> RState<CW> {
             }
             (f, ct, acc)
         };
+        let mut tabs = Vec::new();
+        for i in 0..9 {
+            tabs.push(i);
+        }
+        let tree = Tree::new(tabs);
         RugolState {
             conv_kernels: [conv_matrix; 9],
             cell_type_map,
@@ -56,9 +62,8 @@ impl<const CW: usize> RState<CW> {
             quad_tree: QuadTree::new(CELLS[fields_vec_ix].0, CELLS[fields_vec_ix].1, 5),
             inst: Instant::now(),
             frame_time: 0.,
-            load_file_path: Arc::new(Mutex::new(None)),
-            save_file_path: Arc::new(Mutex::new(None)),
             save_file: None,
+            tree,
         }
     }
 

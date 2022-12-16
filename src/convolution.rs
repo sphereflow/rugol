@@ -4,10 +4,7 @@ use matrices::traits::*;
 use matrices::vec_matrix::VecMatrix;
 use num_traits::{AsPrimitive, One, Zero};
 use quad_rand::{gen_range, RandomRange};
-use std::{
-    iter,
-    ops::{AddAssign, Mul},
-};
+use std::ops::{AddAssign, Mul};
 
 // the kernel should be a square matrix
 #[derive(Debug, Clone)]

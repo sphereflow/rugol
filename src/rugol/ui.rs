@@ -64,20 +64,20 @@ impl<const CW: usize> RState<CW> {
         }
         self.control_ui(ui);
         self.sections_ui(ui);
-        if self.config.ui_sections.reset_fields {
+        if self.config.ui_sections.show_reset_fields() {
             self.clear_ui(ui);
             self.randomize_ui(ui);
         }
-        if self.config.ui_sections.edit_rules {
+        if self.config.ui_sections.show_edit_rules() {
             self.edit_rules_ui(ui);
         }
-        if self.config.ui_sections.settings {
+        if self.config.ui_sections.show_settings() {
             self.settings_ui(ui);
         }
-        if self.config.ui_sections.edit_conv_matrix {
+        if self.config.ui_sections.show_edit_conv_matrix() {
             self.edit_conv_matrix_ui(ui);
         }
-        if self.config.ui_sections.edit_colors {
+        if self.config.ui_sections.show_edit_colors() {
             CellTypeMap::edit(&mut self.cell_type_map, ui);
         }
         if ui.button("Help").clicked() {
@@ -114,25 +114,52 @@ impl<const CW: usize> RState<CW> {
     }
 
     fn sections_ui(&mut self, ui: &mut Ui) {
+        let sections = &mut self.config.ui_sections;
         ui.horizontal(|ui| {
-            Self::select_bool_ui(ui, &mut self.config.ui_sections.settings, "Settings");
-            Self::select_bool_ui(
+            Self::select_section_and_hover_ui(
                 ui,
-                &mut self.config.ui_sections.reset_fields,
+                &mut sections.settings,
+                &mut sections.hover_settings,
+                "Settings",
+            );
+            Self::select_section_and_hover_ui(
+                ui,
+                &mut sections.reset_fields,
+                &mut sections.hover_reset_fields,
                 "Reset controls",
             );
-            Self::select_bool_ui(ui, &mut self.config.ui_sections.edit_rules, "Edit rules");
-            Self::select_bool_ui(
+            Self::select_section_and_hover_ui(
                 ui,
-                &mut self.config.ui_sections.edit_conv_matrix,
+                &mut sections.edit_rules,
+                &mut sections.hover_edit_rules,
+                "Edit rules",
+            );
+            Self::select_section_and_hover_ui(
+                ui,
+                &mut sections.edit_conv_matrix,
+                &mut sections.hover_edit_conv_matrix,
                 "Edit convolution matrix",
             );
-            Self::select_bool_ui(
+            Self::select_section_and_hover_ui(
                 ui,
-                &mut self.config.ui_sections.edit_colors,
+                &mut sections.edit_colors,
+                &mut sections.hover_edit_colors,
                 "Edit colors and values",
             );
         });
+    }
+
+    fn select_section_and_hover_ui(
+        ui: &mut Ui,
+        b: &mut bool,
+        hover: &mut bool,
+        text: impl Into<WidgetText>,
+    ) {
+        let label = ui.selectable_label(*b, text);
+        *hover = label.hovered();
+        if label.clicked() {
+            *b = !*b;
+        }
     }
 
     fn select_bool_ui(ui: &mut Ui, b: &mut bool, text: impl Into<WidgetText>) {
@@ -205,6 +232,10 @@ impl<const CW: usize> RState<CW> {
             self.config.bnew_size = true;
             self.config.bupdate = true;
         }
+        ui.checkbox(
+            &mut self.config.ui_sections.hover_preview,
+            "Preview UI Sections on hover",
+        );
     }
 
     fn edit_rules_ui(&mut self, ui: &mut Ui) {

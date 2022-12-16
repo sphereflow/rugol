@@ -48,8 +48,32 @@ impl Default for AppConfig {
 #[derive(Default)]
 pub struct UiSections {
     pub settings: bool,
+    pub hover_settings: bool,
     pub reset_fields: bool,
+    pub hover_reset_fields: bool,
     pub edit_rules: bool,
+    pub hover_edit_rules: bool,
     pub edit_conv_matrix: bool,
+    pub hover_edit_conv_matrix: bool,
     pub edit_colors: bool,
+    pub hover_edit_colors: bool,
+    pub hover_preview: bool,
+}
+
+impl UiSections {
+    pub fn show_settings(&self) -> bool {
+        self.settings || (self.hover_settings && self.hover_preview)
+    }
+    pub fn show_reset_fields(&self) -> bool {
+        self.reset_fields || (self.hover_reset_fields && self.hover_preview)
+    }
+    pub fn show_edit_rules(&self) -> bool {
+        self.edit_rules || (self.hover_edit_rules && self.hover_preview)
+    }
+    pub fn show_edit_conv_matrix(&self) -> bool {
+        self.edit_conv_matrix || (self.hover_edit_conv_matrix && self.hover_preview)
+    }
+    pub fn show_edit_colors(&self) -> bool {
+        self.edit_colors || (self.hover_edit_colors && self.hover_preview)
+    }
 }

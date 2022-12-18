@@ -229,9 +229,12 @@ impl EventHandler for Stage {
 
     fn mouse_button_up_event(&mut self, ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
         if button == MouseButton::Left {
-            let (ixx, ixy) = self.mouse_pos_to_index(ctx, x, y);
-            self.draw_circle_at_index(ixx, ixy);
-            self.gol.config.bupdate = true;
+            if self.bdraw && !self.gol.config.ui_contains_pointer {
+                let (ixx, ixy) = self.mouse_pos_to_index(ctx, x, y);
+                self.draw_circle_at_index(ixx, ixy);
+                self.gol.config.bupdate = true;
+            }
+            self.last_draw_index = None;
             self.bdraw = false;
         }
         self.egui_mini.mouse_button_up_event(ctx, button, x, y);
@@ -239,6 +242,10 @@ impl EventHandler for Stage {
 
     fn mouse_motion_event(&mut self, ctx: &mut Context, x: f32, y: f32) {
         self.egui_mini.mouse_motion_event(x, y);
+        if self.gol.config.ui_contains_pointer {
+            self.last_draw_index = None;
+            self.bdraw = false;
+        }
         if !self.gol.config.ui_contains_pointer {
             let (ixx, ixy) = self.mouse_pos_to_index(ctx, x, y);
             self.gol.hover_ix = Some((ixx, ixy));

@@ -29,6 +29,7 @@ struct Stage {
     index_buffer: Buffer,
     gol: RState<CONVOLUTION_WIDTH>,
     bdraw: bool,
+    last_draw_index: Option<(usize, usize)>,
 }
 
 impl Stage {
@@ -57,6 +58,7 @@ impl Stage {
             index_buffer,
             gol,
             bdraw: false,
+            last_draw_index: None,
             egui_mini: EguiMq::new(ctx),
         };
         res.new_size_selected(ctx);
@@ -143,12 +145,12 @@ impl Stage {
     fn mouse_pos_to_index(&self, ctx: &mut Context, mouse_x: f32, mouse_y: f32) -> (usize, usize) {
         let (win_width, win_height) = ctx.screen_size();
         let (field_width, field_height) = (
-            self.gol.get_fields().width() as f32,
-            self.gol.get_fields().height() as f32,
+            self.gol.get_fields().width(),
+            self.gol.get_fields().height(),
         );
-        let ixx = (field_width * mouse_x / win_width) as usize;
-        let ixy = (field_height * mouse_y / win_height) as usize;
-        (ixx, ixy)
+        let ixx = (field_width as f32 * mouse_x / win_width) as usize;
+        let ixy = (field_height as f32 * mouse_y / win_height) as usize;
+        (ixx.min(field_width - 1), ixy.min(field_height - 1))
     }
 }
 
@@ -200,6 +202,7 @@ impl EventHandler for Stage {
         // handle drawing with the mouse pointer on the screen
         if button == MouseButton::Left && !self.gol.config.ui_contains_pointer {
             let (ixx, ixy) = self.mouse_pos_to_index(ctx, x_pos, y_pos);
+            self.last_draw_index = Some((ixx, ixy));
             self.gol.set_selected_at_index(ixx, ixy);
             self.gol.config.bupdate = true;
             self.bdraw = true;
@@ -220,6 +223,63 @@ impl EventHandler for Stage {
         if !self.gol.config.ui_contains_pointer {
             let (ixx, ixy) = self.mouse_pos_to_index(ctx, x, y);
             self.gol.hover_ix = Some((ixx, ixy));
+            if self.bdraw {
+                match self.last_draw_index {
+                    Some((from_ixx, from_ixy)) => {
+                        let (to_ixx, to_ixy) = (ixx as isize, ixy as isize);
+                        println!("--------------------------");
+                        println!("({}, {}) -> ({}, {})", from_ixx, from_ixy, to_ixx, to_ixy);
+                        let up = to_ixy as f32 - from_ixy as f32;
+                        let right = to_ixx as f32 - from_ixx as f32;
+                        if right == 0. {
+                            let start = ixy.min(from_ixy).min(self.gol.get_fields().height() - 1);
+                            let end = ixy.max(from_ixy).min(self.gol.get_fields().height() - 1);
+                            println!("ud: start: {}, end: {}, x: {}", start, end, from_ixx);
+                            if from_ixx >= self.gol.get_fields().width() {
+                                return;
+                            }
+                            for y in start..=end {
+                                println!("set at: ({}, {})", from_ixx, y);
+                                self.gol.set_selected_at_index(from_ixx, y);
+                            }
+                        } else {
+                            let ratio = up / right;
+                            let mut go_up = 0_isize;
+                            let mut go_right = 0_isize;
+                            let (mut current_x, mut current_y) =
+                                (from_ixx as isize, from_ixy as isize);
+                            while (to_ixx, to_ixy) != (current_x, current_y) {
+                                let lr = right.signum();
+                                let ud = up.signum();
+                                let r = ((go_up as f32) / (go_right as f32 + lr) - ratio).abs();
+                                let u = ((go_up as f32 + ud) / (go_right as f32) - ratio).abs();
+                                if r < u {
+                                    go_right += lr as isize;
+                                } else {
+                                    go_up += ud as isize;
+                                }
+                                current_x = from_ixx as isize + go_right;
+                                current_y = from_ixy as isize + go_up;
+                                if (0..self.gol.get_fields().width() as isize).contains(&current_x)
+                                    && (0..self.gol.get_fields().height() as isize)
+                                        .contains(&current_y)
+                                {
+                                    print!("=> ({}, {})", current_x, current_y);
+                                    self.gol.set_selected_at_index(
+                                        current_x as usize,
+                                        current_y as usize,
+                                    );
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    None => self.gol.set_selected_at_index(ixx, ixy),
+                }
+                self.gol.config.bupdate = true;
+                self.last_draw_index = Some((ixx, ixy));
+            }
         } else {
             self.gol.hover_ix = None;
         }

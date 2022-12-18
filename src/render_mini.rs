@@ -227,19 +227,15 @@ impl EventHandler for Stage {
                 match self.last_draw_index {
                     Some((from_ixx, from_ixy)) => {
                         let (to_ixx, to_ixy) = (ixx as isize, ixy as isize);
-                        println!("--------------------------");
-                        println!("({}, {}) -> ({}, {})", from_ixx, from_ixy, to_ixx, to_ixy);
                         let up = to_ixy as f32 - from_ixy as f32;
                         let right = to_ixx as f32 - from_ixx as f32;
                         if right == 0. {
                             let start = ixy.min(from_ixy).min(self.gol.get_fields().height() - 1);
                             let end = ixy.max(from_ixy).min(self.gol.get_fields().height() - 1);
-                            println!("ud: start: {}, end: {}, x: {}", start, end, from_ixx);
                             if from_ixx >= self.gol.get_fields().width() {
                                 return;
                             }
                             for y in start..=end {
-                                println!("set at: ({}, {})", from_ixx, y);
                                 self.gol.set_selected_at_index(from_ixx, y);
                             }
                         } else {
@@ -264,7 +260,6 @@ impl EventHandler for Stage {
                                     && (0..self.gol.get_fields().height() as isize)
                                         .contains(&current_y)
                                 {
-                                    print!("=> ({}, {})", current_x, current_y);
                                     self.gol.set_selected_at_index(
                                         current_x as usize,
                                         current_y as usize,

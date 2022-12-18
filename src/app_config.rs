@@ -20,6 +20,7 @@ pub struct AppConfig {
     pub mode: UiMode,
     pub bnew_size: bool,
     pub ui_sections: UiSections,
+    pub draw_line_thickness: u8,
 }
 
 impl Default for AppConfig {
@@ -41,6 +42,7 @@ impl Default for AppConfig {
             mode: UiMode::Warn,
             bnew_size: false,
             ui_sections: UiSections::default(),
+            draw_line_thickness: 1,
         }
     }
 }

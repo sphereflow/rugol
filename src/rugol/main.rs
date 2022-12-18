@@ -209,4 +209,9 @@ impl<const CW: usize> RState<CW> {
             .set_at_index((ixx, ixy), self.cell_type_map.get_selected_rules_cell());
         self.quad_tree.insert(ixx, ixy, 0, 0);
     }
+
+    pub fn is_valid_index(&self, ixx: usize, ixy: usize) -> bool {
+        (0..self.fields_vec[self.vec_ix].width()).contains(&ixx)
+            && (0..self.fields_vec[self.vec_ix].height()).contains(&ixy)
+    }
 }

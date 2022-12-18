@@ -188,6 +188,23 @@ impl<const CW: usize> RState<CW> {
         self.config.bupdate = true;
     }
 
+    pub fn value_changed_for(&mut self, cell_type: CellType) {
+        let cells = &self.cell_type_vec[self.vec_ix];
+        for ixx in 0..cells.width() {
+            for ixy in 0..cells.height() {
+                if cells.index((ixx, ixy)) == cell_type {
+                    self.quad_tree.insert(ixx, ixy, 0, 0);
+                }
+            }
+        }
+        self.config.bupdate = true;
+    }
+
+    pub fn everything_changed(&mut self) {
+        self.quad_tree.everything_changed();
+        self.config.bupdate = true;
+    }
+
     pub fn get_fields(&self) -> &BaseMatrix<CW> {
         &self.fields_vec[self.vec_ix]
     }

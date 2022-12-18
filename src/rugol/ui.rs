@@ -265,13 +265,17 @@ impl<const CW: usize> RState<CW> {
             }
         });
         let mut o_delete_ix = None;
+        let mut changed = false;
         for (del_ix, rule) in self.rules.rules.iter_mut().enumerate() {
             ui.horizontal(|ui| {
-                Self::edit_cell_type(ui, &mut rule.state);
+                changed |= Self::edit_cell_type(ui, &mut rule.state);
                 ui.label("->");
-                Self::edit_cell_type(ui, &mut rule.transition);
+                changed |= Self::edit_cell_type(ui, &mut rule.transition);
                 ui.add(Separator::default());
-                rule.range = <RState<CW>>::edit_range(ui, rule.range.clone());
+                if let Some(range) = <RState<CW>>::edit_range(ui, rule.range.clone()) {
+                    rule.range = range;
+                    changed = true;
+                }
                 if ui.add(Button::new("Delete rule")).clicked() {
                     o_delete_ix = Some(del_ix);
                 }
@@ -280,24 +284,33 @@ impl<const CW: usize> RState<CW> {
         if let Some(del_ix) = o_delete_ix {
             self.rules.rules.remove(del_ix);
         }
+        if changed {
+            self.everything_changed();
+        }
     }
 
-    fn edit_cell_type(ui: &mut Ui, cell: &mut CellType) {
+    fn edit_cell_type(ui: &mut Ui, cell: &mut CellType) -> bool {
         ui.add(
             DragValue::new(cell).custom_formatter(|num, _| format!("{}", CellType::from_f64(num))),
-        );
+        )
+        .changed()
     }
 
-    fn edit_range<T: Numeric>(ui: &mut Ui, range: RangeInclusive<T>) -> RangeInclusive<T> {
+    fn edit_range<T: Numeric>(ui: &mut Ui, range: RangeInclusive<T>) -> Option<RangeInclusive<T>> {
         let mut start = *range.start();
         let mut end = *range.end();
+        let mut changed = false;
         ui.horizontal(|ui| {
             ui.label("range: ");
-            ui.add(DragValue::new(&mut start).speed(0.01));
+            changed |= ui.add(DragValue::new(&mut start).speed(0.01)).changed();
             ui.label("..=");
-            ui.add(DragValue::new(&mut end).speed(0.01));
+            changed |= ui.add(DragValue::new(&mut end).speed(0.01)).changed();
         });
-        start..=end
+        if changed {
+            Some(start..=end)
+        } else {
+            None
+        }
     }
 
     fn edit_cell_type_range(

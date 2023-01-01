@@ -5,6 +5,16 @@ Rugol is a program to simulate and interact with many types of cellular automata
 One goal was to be able to run it in a browser as well as natively.
 You can try it out [here](https://sphereflow.github.io/rugol.html)
 
+## Motivation
+
+What if one was to extend Conways game of life?  
+Here is what has been done so far:
+
+- 2 types of cells with fixed values (dead or alive) => 8 types with adjustable values and a `NoCell` (which is treated like a cell type).
+- one fixed (3x3) convolution matrix => one adjustable convolution matrix per cell type. Dimensions are set at compile time.
+- fixed set of rules => adjustable rules
+- integer values => values can be of any primitive number type (u8, ... f32, ...) the type is set at compile time
+
 ## How it works
 
 ```mermaid
@@ -12,7 +22,7 @@ graph TD
     conv(convolution matrix)
     acv(accumulated value)
     sctv-->conv
-    cctv-->|pick|conv-.->|calculate|acv
+    cctv-->|map to coresponding|conv-.->|calculate|acv
     cctv-->matches
     acv-->|is in|r
     

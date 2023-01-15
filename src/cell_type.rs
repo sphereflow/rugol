@@ -208,8 +208,9 @@ impl CellTypeMap {
         self.map[self.get_selected_idx()].1
     }
 
-    pub fn edit(&mut self, ui: &mut Ui) {
+    pub fn edit(&mut self, ui: &mut Ui) -> Vec<CellType> {
         let mut selected_idx = self.get_selected_idx();
+        let mut changed = Vec::new();
         for chunk in (0..self.get_map().len())
             .collect::<Vec<usize>>()
             .chunks_mut(4)
@@ -232,15 +233,22 @@ impl CellTypeMap {
                         .changed()
                     {
                         map[idx].0 = edit_color_u8.into();
+                        changed.push(idx.try_into().unwrap());
                     }
                     ui.horizontal(|ui| {
                         ui.label("value:");
-                        ui.add(DragValue::new(&mut map[idx].1).speed(0.01));
+                        if ui
+                            .add(DragValue::new(&mut map[idx].1).speed(0.01))
+                            .changed()
+                        {
+                            changed.push(idx.try_into().unwrap());
+                        }
                     });
                 }
             });
         }
         self.set_selected_idx(selected_idx);
+        changed
     }
 }
 

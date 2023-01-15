@@ -78,7 +78,9 @@ impl<const CW: usize> RState<CW> {
             self.edit_conv_matrix_ui(ui);
         }
         if self.config.ui_sections.show_edit_colors() {
-            CellTypeMap::edit(&mut self.cell_type_map, ui);
+            for ct in CellTypeMap::edit(&mut self.cell_type_map, ui) {
+                self.value_changed_for(ct);
+            }
         }
         if ui.button("Help").clicked() {
             self.config.mode = UiMode::Help;
@@ -266,6 +268,7 @@ impl<const CW: usize> RState<CW> {
         });
         let mut o_delete_ix = None;
         let mut changed = false;
+        let mut changed_states = Vec::new();
         for (del_ix, rule) in self.rules.rules.iter_mut().enumerate() {
             ui.horizontal(|ui| {
                 changed |= Self::edit_cell_type(ui, &mut rule.state);
@@ -279,13 +282,19 @@ impl<const CW: usize> RState<CW> {
                 if ui.add(Button::new("Delete rule")).clicked() {
                     o_delete_ix = Some(del_ix);
                 }
+                if changed {
+                    changed_states.push(rule.state);
+                }
             });
         }
         if let Some(del_ix) = o_delete_ix {
             self.rules.rules.remove(del_ix);
         }
         if changed {
-            self.everything_changed();
+            // self.everything_changed();
+            for cell_type in changed_states {
+                self.value_changed_for(cell_type);
+            }
         }
     }
 

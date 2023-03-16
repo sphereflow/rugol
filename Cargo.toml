@@ -23,6 +23,7 @@ flate2 = "1.0.25"
 
 [dependencies.matrices]
 git = "https://github.com/sphereflow/matrices"
+features = ["serde"]
 
 # for local development
 # [patch."https://github.com/sphereflow/matrices"]

@@ -238,7 +238,10 @@ impl<const CW: usize> RState<CW> {
             &mut self.config.ui_sections.hover_preview,
             "Preview UI Sections on hover",
         );
-        ui.add(Slider::new(&mut self.config.draw_line_thickness, 1_u8..=10));
+        ui.add(
+            Slider::new(&mut self.config.draw_line_thickness, 1_u8..=10)
+                .text("draw line thickness"),
+        );
     }
 
     fn edit_rules_ui(&mut self, ui: &mut Ui) {

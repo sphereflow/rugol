@@ -101,7 +101,11 @@ impl<const CW: usize> RState<CW> {
         for (ixx, ixy) in indices.iter() {
             let acc = acc_matrix.index((ixx, ixy));
             let initial_cell = cell_type_matrix.index((ixx, ixy));
-            let cell = self.rules.apply(initial_cell, acc);
+            let cell = if self.config.brandom_rules {
+                self.rules.apply_random(initial_cell, acc)
+            } else {
+                self.rules.apply(initial_cell, acc)
+            };
             let field = self.cell_type_map[cell].1;
             if cell != initial_cell {
                 cell_type_matrix.set_at_index((ixx, ixy), cell);

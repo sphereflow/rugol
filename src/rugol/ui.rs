@@ -221,6 +221,7 @@ impl<const CW: usize> RState<CW> {
             }
         }
         ui.checkbox(&mut self.config.bsingle_kernel, "single kernel");
+        ui.checkbox(&mut self.config.brandom_rules, "random rules");
         ui.checkbox(&mut self.config.bfade, "fade");
         ui.add(Slider::new(&mut self.fader.mix_factor, 0.0_f32..=1.0).text("Fader: mix_factor"));
         ui.checkbox(&mut self.config.sym_editting, "symmetric editting");
@@ -251,6 +252,7 @@ impl<const CW: usize> RState<CW> {
                     state: CellType::NoCell,
                     range: Zero::zero()..=Zero::zero(),
                     transition: CellType::NoCell,
+                    transition_probability: None,
                 });
             }
             if CW == 5 && ui.button("Flame").clicked() {
@@ -284,6 +286,26 @@ impl<const CW: usize> RState<CW> {
                 }
                 if ui.add(Button::new("Delete rule")).clicked() {
                     o_delete_ix = Some(del_ix);
+                    changed = true;
+                }
+                let mut btp = rule.transition_probability.is_some();
+                if self.config.brandom_rules {
+                    if ui.checkbox(&mut btp, "random?").changed() {
+                        if btp {
+                            rule.transition_probability = Some(1.0);
+                        } else {
+                            rule.transition_probability = None;
+                        }
+                    }
+                    if let Some(probability) = rule.transition_probability.as_mut() {
+                        changed |= ui
+                            .add(
+                                DragValue::new(probability)
+                                    .speed(0.01)
+                                    .clamp_range(0.0..=1.0),
+                            )
+                            .changed();
+                    }
                 }
                 if changed {
                     changed_states.push(rule.state);

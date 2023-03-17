@@ -36,5 +36,4 @@ web-sys = "0.3.60"
 js-sys = "0.3.60"
 
 [profile.release]
-lto = 'fat'
 opt-level = 's'

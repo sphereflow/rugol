@@ -35,6 +35,6 @@ impl<M: Matrix<Color>> Fader<M> {
     }
 
     pub fn index(&self, ixx: usize, ixy: usize) -> Color {
-        self.color_matrix.index((ixx, ixy)).into()
+        self.color_matrix.index((ixx, ixy))
     }
 }

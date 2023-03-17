@@ -302,10 +302,7 @@ impl EventHandler for Stage {
                                 current_x = (from_ixx as isize + go_right) as usize;
                                 current_y = (from_ixy as isize + go_up) as usize;
                                 if self.gol.is_valid_index(current_x, current_y) {
-                                    self.gol.set_selected_at_index(
-                                        current_x as usize,
-                                        current_y as usize,
-                                    );
+                                    self.gol.set_selected_at_index(current_x, current_y);
 
                                     // draw thickness of line
                                     let thickness = self.gol.config.draw_line_thickness as isize;
@@ -415,9 +412,7 @@ impl EventHandler for Stage {
 }
 
 pub fn mini_main() {
-    miniquad::start(conf::Conf::default(), |mut ctx| {
-        Box::new(Stage::new(&mut ctx))
-    });
+    miniquad::start(conf::Conf::default(), |ctx| Box::new(Stage::new(ctx)));
 }
 
 mod shader {

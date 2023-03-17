@@ -232,3 +232,9 @@ impl<const CW: usize> RState<CW> {
             && (0..self.fields_vec[self.vec_ix].height()).contains(&ixy)
     }
 }
+
+impl<const CW: usize> Default for RState<CW> {
+    fn default() -> Self {
+        Self::new()
+    }
+}

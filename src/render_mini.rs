@@ -1,3 +1,4 @@
+use egui::{Color32, ColorImage, ImageData, TextureOptions};
 use egui_miniquad::EguiMq;
 use instant::Instant;
 use matrices::traits::Matrix;
@@ -50,6 +51,40 @@ impl Stage {
         );
         let mut gol = <RState<CONVOLUTION_WIDTH>>::new();
         gol.donut_all_kernels(0..=1, Zero::zero());
+
+        // arrows
+        let egui_mini = EguiMq::new(ctx);
+        let mut image_up_arrow = ColorImage::new([20, 20], Color32::DARK_GRAY);
+        let w = image_up_arrow.width();
+        let h = image_up_arrow.height();
+        for y in 0..w {
+            for x in 0..h {
+                if ((y >= (h - 2 * x)) && (2 * x < w)) || ((y >= (2 * x - h)) && (2 * x >= w)) {
+                    image_up_arrow.pixels[x + y * w] = Color32::LIGHT_GRAY;
+                }
+            }
+        }
+        let mut image_down_arrow = ColorImage::new([20, 20], Color32::DARK_GRAY);
+        let w = image_down_arrow.width();
+        let h = image_down_arrow.height();
+        for y in 0..w {
+            for x in 0..h {
+                if ((y < (2 * x)) && (2 * x < w)) || ((y < (2 * h - 2 * x)) && (2 * x >= w)) {
+                    image_down_arrow.pixels[x + y * w] = Color32::LIGHT_GRAY;
+                }
+            }
+        }
+        gol.ui_up_arrow = Some(egui_mini.egui_ctx().load_texture(
+            "",
+            ImageData::Color(image_up_arrow),
+            TextureOptions::default(),
+        ));
+        gol.ui_down_arrow = Some(egui_mini.egui_ctx().load_texture(
+            "",
+            ImageData::Color(image_down_arrow),
+            TextureOptions::default(),
+        ));
+
         let mut res = Stage {
             pipeline,
             bindings,
@@ -59,7 +94,7 @@ impl Stage {
             gol,
             bdraw: false,
             last_draw_index: None,
-            egui_mini: EguiMq::new(ctx),
+            egui_mini,
         };
         res.new_size_selected(ctx);
         res

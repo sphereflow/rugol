@@ -8,6 +8,7 @@ use crate::{
     save_file::SaveFile,
     FieldType,
 };
+use egui::TextureHandle;
 use egui_dock::Tree;
 use instant::Instant;
 use matrices::{traits::Matrix, vec_matrix::VecMatrix};
@@ -43,5 +44,7 @@ pub struct RugolState<
     pub inst: Instant,
     pub frame_time: f64,
     pub save_file: Option<SaveFile<CW>>,
+    pub ui_down_arrow: Option<TextureHandle>,
+    pub ui_up_arrow: Option<TextureHandle>,
     tree: Tree<usize>,
 }

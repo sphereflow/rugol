@@ -1,5 +1,6 @@
 use std::ops::RangeInclusive;
 
+use egui::{Color32, ColorImage};
 use egui_dock::Tree;
 use instant::Instant;
 
@@ -63,6 +64,8 @@ impl<const CW: usize> RState<CW> {
             inst: Instant::now(),
             frame_time: 0.,
             save_file: None,
+            ui_up_arrow: None,
+            ui_down_arrow: None,
             tree,
         }
     }

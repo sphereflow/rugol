@@ -272,8 +272,11 @@ impl<const CW: usize> RState<CW> {
             }
         });
         let mut o_delete_ix = None;
+        let mut o_up_ix = None;
+        let mut o_down_ix = None;
         let mut changed = false;
         let mut changed_states = Vec::new();
+        let num_rules = self.rules.rules.len();
         for (del_ix, rule) in self.rules.rules.iter_mut().enumerate() {
             ui.horizontal(|ui| {
                 changed |= Self::edit_cell_type(ui, &mut rule.state);
@@ -307,6 +310,26 @@ impl<const CW: usize> RState<CW> {
                             .changed();
                     }
                 }
+                if del_ix > 0 {
+                    if let Some(up) = &self.ui_up_arrow {
+                        if ui
+                            .add(ImageButton::new(up, Vec2::new(10.0, 10.0)))
+                            .clicked()
+                        {
+                            o_up_ix = Some(del_ix);
+                        }
+                    }
+                }
+                if del_ix < (num_rules - 1) {
+                    if let Some(down) = &self.ui_down_arrow {
+                        if ui
+                            .add(ImageButton::new(down, Vec2::new(10.0, 10.0)))
+                            .clicked()
+                        {
+                            o_down_ix = Some(del_ix);
+                        }
+                    }
+                }
                 if changed {
                     changed_states.push(rule.state);
                 }
@@ -314,6 +337,16 @@ impl<const CW: usize> RState<CW> {
         }
         if let Some(del_ix) = o_delete_ix {
             self.rules.rules.remove(del_ix);
+        }
+        if let Some(up_ix) = o_up_ix {
+            if up_ix > 0 {
+                self.rules.rules.swap(up_ix, up_ix - 1);
+            }
+        }
+        if let Some(down_ix) = o_down_ix {
+            if down_ix < (self.rules.rules.len() - 1) {
+                self.rules.rules.swap(down_ix, down_ix + 1);
+            }
         }
         if changed {
             // self.everything_changed();

@@ -22,6 +22,7 @@ pub struct AppConfig {
     pub bnew_size: bool,
     pub ui_sections: UiSections,
     pub draw_line_thickness: u8,
+    pub bmirror_conv_kernels: bool,
 }
 
 impl Default for AppConfig {
@@ -45,6 +46,7 @@ impl Default for AppConfig {
             bnew_size: false,
             ui_sections: UiSections::default(),
             draw_line_thickness: 1,
+            bmirror_conv_kernels: true,
         }
     }
 }

@@ -46,67 +46,98 @@ impl<'a, const CW: usize> ConvWrapper<'a, CW> {
     }
 
     fn colored_matrix_ui(&mut self, ui: &mut Ui, matrix_index: usize) {
-        let conv_matrix = &mut self.inner[matrix_index];
-        ui.horizontal(|ui| {
-            for x in 0..conv_matrix.width() {
-                ui.vertical(|ui| {
-                    for y in 0..conv_matrix.height() {
-                        let val = conv_matrix.index((x, y));
-                        //ui.add(DragValue::new(&mut val));
-                        let col = match self.cell_type_map.color_for_value(val) {
-                            Some(col) => col,
-                            None => WHITE,
-                        };
-                        let text_col = if (col.r + col.g + col.b) < 0.5 {
-                            Color32::GRAY
-                        } else {
-                            Color32::BLACK
-                        };
-                        if ui
-                            .add(
-                                Label::new(
-                                    RichText::new(format!("{}", val))
-                                        .color(text_col)
-                                        .strong()
-                                        .heading()
-                                        .background_color(Rgba::from_rgb(col.r, col.g, col.b)),
-                                )
-                                .sense(Sense::click_and_drag()),
-                            )
-                            .dragged()
-                        {
-                            if self.config.sym_editting {
-                                conv_matrix.set_at_index_sym(
-                                    self.config.symmetry,
-                                    (x, y),
-                                    self.cell_type_map.get_selected_rules_val(),
-                                )
-                            } else {
-                                conv_matrix.set_at_index(
-                                    (x, y),
-                                    self.cell_type_map.get_selected_rules_val(),
-                                );
-                            }
+        let w = self.inner[matrix_index].width();
+        let h = self.inner[matrix_index].height();
+        if self.config.bmirror_conv_kernels {
+            ui.horizontal(|ui| {
+                for x in (0..w).rev() {
+                    ui.vertical(|ui| {
+                        for y in (0..h).rev() {
+                            self.edit_colored_value(ui, matrix_index, x, y);
                         }
-                    }
-                });
+                    });
+                }
+            });
+        } else {
+            ui.horizontal(|ui| {
+                for x in 0..w {
+                    ui.vertical(|ui| {
+                        for y in 0..h {
+                            self.edit_colored_value(ui, matrix_index, x, y);
+                        }
+                    });
+                }
+            });
+        }
+    }
+
+    fn edit_colored_value(&mut self, ui: &mut Ui, matrix_index: usize, x: usize, y: usize) {
+        let conv_matrix = &mut self.inner[matrix_index];
+        let val = conv_matrix.index((x, y));
+        //ui.add(DragValue::new(&mut val));
+        let col = match self.cell_type_map.color_for_value(val) {
+            Some(col) => col,
+            None => WHITE,
+        };
+        let text_col = if (col.r + col.g + col.b) < 0.5 {
+            Color32::GRAY
+        } else {
+            Color32::BLACK
+        };
+        if ui
+            .add(
+                Label::new(
+                    RichText::new(format!("{}", val))
+                        .color(text_col)
+                        .strong()
+                        .heading()
+                        .background_color(Rgba::from_rgb(col.r, col.g, col.b)),
+                )
+                .sense(Sense::click_and_drag()),
+            )
+            .dragged()
+        {
+            if self.config.sym_editting {
+                conv_matrix.set_at_index_sym(
+                    self.config.symmetry,
+                    (x, y),
+                    self.cell_type_map.get_selected_rules_val(),
+                )
+            } else {
+                conv_matrix.set_at_index((x, y), self.cell_type_map.get_selected_rules_val());
             }
-        });
+        }
     }
 
     fn drag_value_matrix_ui(&mut self, ui: &mut Ui, convolution_index: usize) {
         let conv_matrix = &mut self.inner[convolution_index];
-        ui.horizontal(|ui| {
-            for x in 0..conv_matrix.width() {
-                ui.vertical(|ui| {
-                    for y in 0..conv_matrix.height() {
-                        let mut val = conv_matrix.index((x, y));
-                        ui.add(DragValue::new(&mut val).speed(0.01));
-                        conv_matrix.set_at_index((x, y), val);
-                    }
-                });
-            }
-        });
+        if self.config.bmirror_conv_kernels {
+            ui.horizontal(|ui| {
+                for x in (0..conv_matrix.width()).rev() {
+                    ui.vertical(|ui| {
+                        for y in (0..conv_matrix.height()).rev() {
+                            Self::edit_drag_value(conv_matrix, x, y, ui);
+                        }
+                    });
+                }
+            });
+        } else {
+            ui.horizontal(|ui| {
+                for x in 0..conv_matrix.width() {
+                    ui.vertical(|ui| {
+                        for y in 0..conv_matrix.height() {
+                            Self::edit_drag_value(conv_matrix, x, y, ui);
+                        }
+                    });
+                }
+            });
+        }
+    }
+
+    fn edit_drag_value(conv_matrix: &mut ConvolutionMatrix<CW>, x: usize, y: usize, ui: &mut Ui) {
+        let mut val = conv_matrix.index((x, y));
+        ui.add(DragValue::new(&mut val).speed(0.01));
+        conv_matrix.set_at_index((x, y), val);
     }
 
     fn copy_kernels_ui(&mut self, ui: &mut Ui, convolution_index: usize) {

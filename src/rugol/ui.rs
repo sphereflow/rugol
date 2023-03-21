@@ -221,6 +221,7 @@ impl<const CW: usize> RState<CW> {
             }
         }
         ui.checkbox(&mut self.config.bsingle_kernel, "single kernel");
+        ui.checkbox(&mut self.config.bmirror_conv_kernels, "mirror kernels");
         ui.checkbox(&mut self.config.brandom_rules, "random rules");
         ui.checkbox(&mut self.config.bfade, "fade");
         ui.add(Slider::new(&mut self.fader.mix_factor, 0.0_f32..=1.0).text("Fader: mix_factor"));

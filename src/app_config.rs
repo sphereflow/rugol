@@ -1,4 +1,4 @@
-use crate::{cell_type::CellType, UiMode};
+use crate::{cell_type::CellType, UiMode, FieldType};
 use instant::{Duration, Instant};
 use matrices::traits::Symmetry;
 use std::ops::RangeInclusive;
@@ -14,6 +14,7 @@ pub struct AppConfig {
     pub ui_contains_pointer: bool,
     pub randomize_range: RangeInclusive<CellType>,
     pub conv_matrix_copy_range: RangeInclusive<CellType>,
+    pub conv_norms: [FieldType; 9],
     pub clear_val: CellType,
     pub sym_editting: bool,
     pub symmetry: Symmetry,
@@ -38,6 +39,7 @@ impl Default for AppConfig {
             ui_contains_pointer: false,
             randomize_range: CellType::NoCell..=CellType::A,
             conv_matrix_copy_range: CellType::NoCell..=CellType::A,
+            conv_norms: [1.0; 9],
             clear_val: CellType::NoCell,
             sym_editting: false,
             symmetry: Symmetry::XY,

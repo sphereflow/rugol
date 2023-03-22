@@ -1,4 +1,6 @@
-use crate::{app_config::AppConfig, cell_type::CellTypeMap, color::WHITE, ConvolutionMatrix};
+use crate::{
+    app_config::AppConfig, cell_type::CellTypeMap, color::WHITE, ConvolutionMatrix, FieldType,
+};
 use egui::{
     emath::Numeric, Color32, DragValue, ImageButton, Label, Rgba, RichText, Sense, TextureHandle,
     Ui, Vec2, WidgetText,
@@ -31,6 +33,8 @@ impl<'a, const CW: usize> TabViewer for ConvWrapper<'a, CW> {
         });
         ui.separator();
         self.copy_kernels_ui(ui, convolution_index);
+        ui.separator();
+        self.normalize_kernel_ui(ui, convolution_index);
     }
 
     fn title(&mut self, tab: &mut Self::Tab) -> WidgetText {
@@ -202,5 +206,27 @@ impl<'a, const CW: usize> ConvWrapper<'a, CW> {
                 *kernel = from_kernel;
             }
         }
+    }
+
+    fn normalize_kernel_ui(&mut self, ui: &mut Ui, convolution_index: usize) {
+        ui.horizontal(|ui| {
+            if ui.button("normalize to:").clicked() {
+                let conv = &mut self.inner[convolution_index];
+                let conv_norm = self.config.conv_norms[convolution_index];
+                let acc: FieldType = conv
+                    .data
+                    .iter()
+                    .map(|arr| arr.iter().sum::<FieldType>())
+                    .sum();
+                if acc != 0.0 {
+                    for y in 0..conv.height() {
+                        for x in 0..conv.width() {
+                            conv.set_at_index((x, y), conv.index((x, y)) * conv_norm / acc);
+                        }
+                    }
+                }
+            }
+            ui.add(DragValue::new(&mut self.config.conv_norms[convolution_index]).speed(0.01));
+        });
     }
 }

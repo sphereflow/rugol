@@ -1,9 +1,3 @@
-use std::ops::RangeInclusive;
-
-use egui::{Color32, ColorImage};
-use egui_dock::Tree;
-use instant::Instant;
-
 use super::*;
 use crate::{
     app_config::AppConfig,
@@ -17,8 +11,11 @@ use crate::{
     traits::ConvolutionT,
     BaseMatrix, FieldType, RState, CELLS,
 };
+use egui_dock::Tree;
+use instant::Instant;
 use matrices::traits::*;
 use matrices::{const_matrix::ConstMatrix, vec_matrix::VecMatrix};
+use std::ops::RangeInclusive;
 
 impl<const CW: usize> RState<CW> {
     pub fn new() -> Self {

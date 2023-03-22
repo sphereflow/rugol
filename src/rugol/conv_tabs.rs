@@ -1,5 +1,8 @@
 use crate::{app_config::AppConfig, cell_type::CellTypeMap, color::WHITE, ConvolutionMatrix};
-use egui::{emath::Numeric, Color32, DragValue, Label, Rgba, RichText, Sense, Ui, WidgetText};
+use egui::{
+    emath::Numeric, Color32, DragValue, ImageButton, Label, Rgba, RichText, Sense, TextureHandle,
+    Ui, Vec2, WidgetText,
+};
 use egui_dock::TabViewer;
 use matrices::traits::Matrix;
 use std::ops::RangeInclusive;
@@ -8,6 +11,8 @@ pub struct ConvWrapper<'a, const CW: usize> {
     pub inner: &'a mut [ConvolutionMatrix<CW>; 9],
     pub config: &'a mut AppConfig,
     pub cell_type_map: &'a CellTypeMap,
+    pub ui_down_arrow: &'a Option<TextureHandle>,
+    pub ui_up_arrow: &'a Option<TextureHandle>,
     pub copy_indices: Vec<(usize, usize)>,
     pub copy_to_all: Option<usize>,
 }
@@ -23,8 +28,9 @@ impl<'a, const CW: usize> TabViewer for ConvWrapper<'a, CW> {
             ui.vertical(|ui| {
                 self.drag_value_matrix_ui(ui, convolution_index);
             });
-            self.copy_kernels_ui(ui, convolution_index);
         });
+        ui.separator();
+        self.copy_kernels_ui(ui, convolution_index);
     }
 
     fn title(&mut self, tab: &mut Self::Tab) -> WidgetText {
@@ -145,12 +151,24 @@ impl<'a, const CW: usize> ConvWrapper<'a, CW> {
         if !self.config.bsingle_kernel {
             ui.vertical(|ui| {
                 // copy up / down
-                if convolution_index > 0 && ui.button("▲").clicked() {
-                    self.copy_indices = vec![(convolution_index, convolution_index - 1)];
+                if let Some(up) = self.ui_up_arrow {
+                    if convolution_index > 0
+                        && ui
+                            .add(ImageButton::new(up, Vec2::new(10.0, 10.0)))
+                            .clicked()
+                    {
+                        self.copy_indices = vec![(convolution_index, convolution_index - 1)];
+                    }
                 }
 
-                if convolution_index < (kernel_len - 1) && ui.button("⯆").clicked() {
-                    self.copy_indices = vec![(convolution_index, convolution_index + 1)];
+                if let Some(down) = self.ui_down_arrow {
+                    if convolution_index < (kernel_len - 1)
+                        && ui
+                            .add(ImageButton::new(down, Vec2::new(10.0, 10.0)))
+                            .clicked()
+                    {
+                        self.copy_indices = vec![(convolution_index, convolution_index + 1)];
+                    }
                 }
 
                 ui.horizontal(|ui| {

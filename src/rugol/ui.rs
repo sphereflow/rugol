@@ -401,6 +401,8 @@ impl<const CW: usize> RState<CW> {
             inner: &mut self.conv_kernels,
             config: &mut self.config,
             cell_type_map: &mut self.cell_type_map,
+            ui_down_arrow: &mut self.ui_down_arrow,
+            ui_up_arrow: &mut self.ui_up_arrow,
             copy_indices: Vec::new(),
             copy_to_all: None,
         };

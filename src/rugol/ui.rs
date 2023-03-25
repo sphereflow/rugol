@@ -52,16 +52,24 @@ impl<const CW: usize> RState<CW> {
             }
         });
         self.config.ui_contains_pointer = ctx.is_pointer_over_area();
+        Window::new("debug output")
+            .open(&mut self.config.bdebug_window)
+            .show(ctx, |ui| {
+                if let Some(ix) = self.hover_ix {
+                    ui.label(format!(
+                        "hovered field:\n{}",
+                        self.fields_vec[self.vec_ix].display_element(ix)
+                    ));
+                }
+                ui.checkbox(&mut self.config.bdebug_quad_tree, "debug quad_tree");
+                if self.config.bdebug_quad_tree {
+                    ui.label(self.quad_tree.debug_levels().unwrap());
+                }
+            });
     }
 
     fn main_ui(&mut self, ui: &mut Ui) {
         self.timings_ui(ui);
-        if let Some(ix) = self.hover_ix {
-            ui.label(format!(
-                "hovered field: {}",
-                self.fields_vec[self.vec_ix].display_element(ix)
-            ));
-        }
         self.control_ui(ui);
         self.sections_ui(ui);
         if self.config.ui_sections.show_reset_fields() {
@@ -225,6 +233,7 @@ impl<const CW: usize> RState<CW> {
         ui.checkbox(&mut self.config.brandom_rules, "random rules");
         ui.checkbox(&mut self.config.bfade, "fade");
         ui.add(Slider::new(&mut self.fader.mix_factor, 0.0_f32..=1.0).text("Fader: mix_factor"));
+        ui.checkbox(&mut self.config.bdebug_window, "debug window");
         ui.checkbox(&mut self.config.sym_editting, "symmetric editting");
         if self.config.sym_editting {
             self.edit_symmetry(ui);

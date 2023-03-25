@@ -1,4 +1,4 @@
-use crate::{cell_type::CellType, UiMode, FieldType};
+use crate::{cell_type::CellType, FieldType, UiMode};
 use instant::{Duration, Instant};
 use matrices::traits::Symmetry;
 use std::ops::RangeInclusive;
@@ -24,6 +24,8 @@ pub struct AppConfig {
     pub ui_sections: UiSections,
     pub draw_line_thickness: u8,
     pub bmirror_conv_kernels: bool,
+    pub bdebug_window: bool,
+    pub bdebug_quad_tree: bool,
 }
 
 impl Default for AppConfig {
@@ -49,6 +51,8 @@ impl Default for AppConfig {
             ui_sections: UiSections::default(),
             draw_line_thickness: 1,
             bmirror_conv_kernels: true,
+            bdebug_window: false,
+            bdebug_quad_tree: false,
         }
     }
 }

@@ -1,3 +1,4 @@
+use std::fmt::Write;
 use std::{iter::repeat, ops::RangeInclusive};
 
 #[derive(Clone, Debug)]
@@ -171,6 +172,18 @@ impl QuadTree<Node> {
             }
             println!("---");
         }
+    }
+
+    pub fn debug_levels(&self) -> Result<String, std::fmt::Error> {
+        let mut res = String::new();
+        for level in 0..self.tree.len() {
+            let lines = self.print_level_rec(level, 0, 0);
+            for line in &lines {
+                writeln!(res, "{line}")?;
+            }
+            writeln!(res, "---")?;
+        }
+        Ok(res)
     }
 
     fn print_level_rec(&self, target_level: usize, level: usize, node_ix: usize) -> Vec<String> {

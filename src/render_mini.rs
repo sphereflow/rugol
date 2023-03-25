@@ -281,104 +281,100 @@ impl EventHandler for Stage {
             self.last_draw_index = None;
             self.bdraw = false;
         }
-        if !self.gol.config.ui_contains_pointer {
-            let (ixx, ixy) = self.mouse_pos_to_index(ctx, x, y);
-            self.gol.hover_ix = Some((ixx, ixy));
-            if self.bdraw {
-                self.draw_circle_at_index(ixx, ixy);
-                match self.last_draw_index {
-                    Some((from_ixx, from_ixy)) => {
-                        let (to_ixx, to_ixy) = (ixx, ixy);
-                        let up = to_ixy as f32 - from_ixy as f32;
-                        let right = to_ixx as f32 - from_ixx as f32;
-                        if right == 0. {
-                            let start = ixy.min(from_ixy).min(self.gol.get_fields().height() - 1);
-                            let end = ixy.max(from_ixy).min(self.gol.get_fields().height() - 1);
-                            if from_ixx >= self.gol.get_fields().width() {
-                                return;
-                            }
-                            for y in start..=end {
-                                self.gol.set_selected_at_index(from_ixx, y);
-                                // we went up or down, so paint with thickness right and left
-                                for x in 1..(self.gol.config.draw_line_thickness as isize) {
-                                    let tx = from_ixx + x as usize;
-                                    if self.gol.is_valid_index(tx, y) {
-                                        self.gol.set_selected_at_index(tx, y)
-                                    }
-                                    let tx = ((from_ixx as isize - x).max(0)) as usize;
-                                    if self.gol.is_valid_index(tx, y) {
-                                        self.gol.set_selected_at_index(tx, y)
-                                    }
+        let (ixx, ixy) = self.mouse_pos_to_index(ctx, x, y);
+        self.gol.hover_ix = Some((ixx, ixy));
+        if self.bdraw {
+            self.draw_circle_at_index(ixx, ixy);
+            match self.last_draw_index {
+                Some((from_ixx, from_ixy)) => {
+                    let (to_ixx, to_ixy) = (ixx, ixy);
+                    let up = to_ixy as f32 - from_ixy as f32;
+                    let right = to_ixx as f32 - from_ixx as f32;
+                    if right == 0. {
+                        let start = ixy.min(from_ixy).min(self.gol.get_fields().height() - 1);
+                        let end = ixy.max(from_ixy).min(self.gol.get_fields().height() - 1);
+                        if from_ixx >= self.gol.get_fields().width() {
+                            return;
+                        }
+                        for y in start..=end {
+                            self.gol.set_selected_at_index(from_ixx, y);
+                            // we went up or down, so paint with thickness right and left
+                            for x in 1..(self.gol.config.draw_line_thickness as isize) {
+                                let tx = from_ixx + x as usize;
+                                if self.gol.is_valid_index(tx, y) {
+                                    self.gol.set_selected_at_index(tx, y)
                                 }
-                            }
-                        } else {
-                            let ratio = up / right;
-                            let mut go_up = 0_isize;
-                            let mut go_right = 0_isize;
-                            let (mut current_x, mut current_y) = (from_ixx, from_ixy);
-                            while (to_ixx, to_ixy) != (current_x, current_y) {
-                                let lr = right.signum();
-                                let ud = up.signum();
-                                // ratio difference if we went right or left
-                                let r = ((go_up as f32) / (go_right as f32 + lr) - ratio).abs();
-                                // ratio difference if we went up or down
-                                let u = ((go_up as f32 + ud) / (go_right as f32) - ratio).abs();
-                                // pick the smallest ratio difference
-                                if r < u {
-                                    go_right += lr as isize;
-                                } else {
-                                    go_up += ud as isize;
-                                }
-                                if ((go_right < 0) && ((from_ixx as isize) < go_right.abs()))
-                                    || ((go_up < 0) && ((from_ixy as isize) < go_up.abs()))
-                                {
-                                    break;
-                                }
-                                current_x = (from_ixx as isize + go_right) as usize;
-                                current_y = (from_ixy as isize + go_up) as usize;
-                                if self.gol.is_valid_index(current_x, current_y) {
-                                    self.gol.set_selected_at_index(current_x, current_y);
-
-                                    // draw thickness of line
-                                    let thickness = self.gol.config.draw_line_thickness as isize;
-                                    if r < u {
-                                        // we went right or left so paint with thickness up and down
-                                        for y in 1..thickness {
-                                            let ty = current_y + y as usize;
-                                            if self.gol.is_valid_index(current_x, ty) {
-                                                self.gol.set_selected_at_index(current_x, ty)
-                                            }
-                                            let ty = ((current_y as isize - y).max(0)) as usize;
-                                            if self.gol.is_valid_index(current_x, ty) {
-                                                self.gol.set_selected_at_index(current_x, ty)
-                                            }
-                                        }
-                                    } else {
-                                        // we went up or down, so paint with thickness right and left
-                                        for x in 1..thickness {
-                                            let tx = current_x + x as usize;
-                                            if self.gol.is_valid_index(tx, current_y) {
-                                                self.gol.set_selected_at_index(tx, current_y)
-                                            }
-                                            let tx = ((current_x as isize - x).max(0)) as usize;
-                                            if self.gol.is_valid_index(tx, current_y) {
-                                                self.gol.set_selected_at_index(tx, current_y)
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    break;
+                                let tx = ((from_ixx as isize - x).max(0)) as usize;
+                                if self.gol.is_valid_index(tx, y) {
+                                    self.gol.set_selected_at_index(tx, y)
                                 }
                             }
                         }
+                    } else {
+                        let ratio = up / right;
+                        let mut go_up = 0_isize;
+                        let mut go_right = 0_isize;
+                        let (mut current_x, mut current_y) = (from_ixx, from_ixy);
+                        while (to_ixx, to_ixy) != (current_x, current_y) {
+                            let lr = right.signum();
+                            let ud = up.signum();
+                            // ratio difference if we went right or left
+                            let r = ((go_up as f32) / (go_right as f32 + lr) - ratio).abs();
+                            // ratio difference if we went up or down
+                            let u = ((go_up as f32 + ud) / (go_right as f32) - ratio).abs();
+                            // pick the smallest ratio difference
+                            if r < u {
+                                go_right += lr as isize;
+                            } else {
+                                go_up += ud as isize;
+                            }
+                            if ((go_right < 0) && ((from_ixx as isize) < go_right.abs()))
+                                || ((go_up < 0) && ((from_ixy as isize) < go_up.abs()))
+                            {
+                                break;
+                            }
+                            current_x = (from_ixx as isize + go_right) as usize;
+                            current_y = (from_ixy as isize + go_up) as usize;
+                            if self.gol.is_valid_index(current_x, current_y) {
+                                self.gol.set_selected_at_index(current_x, current_y);
+
+                                // draw thickness of line
+                                let thickness = self.gol.config.draw_line_thickness as isize;
+                                if r < u {
+                                    // we went right or left so paint with thickness up and down
+                                    for y in 1..thickness {
+                                        let ty = current_y + y as usize;
+                                        if self.gol.is_valid_index(current_x, ty) {
+                                            self.gol.set_selected_at_index(current_x, ty)
+                                        }
+                                        let ty = ((current_y as isize - y).max(0)) as usize;
+                                        if self.gol.is_valid_index(current_x, ty) {
+                                            self.gol.set_selected_at_index(current_x, ty)
+                                        }
+                                    }
+                                } else {
+                                    // we went up or down, so paint with thickness right and left
+                                    for x in 1..thickness {
+                                        let tx = current_x + x as usize;
+                                        if self.gol.is_valid_index(tx, current_y) {
+                                            self.gol.set_selected_at_index(tx, current_y)
+                                        }
+                                        let tx = ((current_x as isize - x).max(0)) as usize;
+                                        if self.gol.is_valid_index(tx, current_y) {
+                                            self.gol.set_selected_at_index(tx, current_y)
+                                        }
+                                    }
+                                }
+                            } else {
+                                break;
+                            }
+                        }
                     }
-                    None => self.gol.set_selected_at_index(ixx, ixy),
                 }
-                self.gol.config.bupdate = true;
-                self.last_draw_index = Some((ixx, ixy));
+                None => self.gol.set_selected_at_index(ixx, ixy),
             }
-        } else {
-            self.gol.hover_ix = None;
+            self.gol.config.bupdate = true;
+            self.last_draw_index = Some((ixx, ixy));
         }
     }
 

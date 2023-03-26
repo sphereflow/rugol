@@ -17,6 +17,7 @@ pub mod rugol;
 pub mod rules;
 pub mod save_file;
 pub mod traits;
+pub mod zoom_window;
 
 const CELLS: [(usize, usize); 5] = [(10, 5), (100, 50), (200, 100), (400, 200), (800, 400)];
 static WARN_TEXT: &str = "Warning: Depending on the settings this program may produce bright flashing and/or pulsating images";

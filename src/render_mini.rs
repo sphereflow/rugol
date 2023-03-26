@@ -5,13 +5,13 @@ use matrices::traits::Matrix;
 use miniquad::*;
 use num_traits::Zero;
 
-use crate::{RState, CONVOLUTION_WIDTH};
+use crate::{zoom_window::ZoomWindow, RState, CONVOLUTION_WIDTH};
 
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
-struct Vec2 {
-    x: f32,
-    y: f32,
+pub struct Vec2 {
+    pub x: f32,
+    pub y: f32,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -31,6 +31,7 @@ struct Stage {
     gol: RState<CONVOLUTION_WIDTH>,
     bdraw: bool,
     last_draw_index: Option<(usize, usize)>,
+    zoom_window: ZoomWindow,
 }
 
 impl Stage {
@@ -95,6 +96,7 @@ impl Stage {
             bdraw: false,
             last_draw_index: None,
             egui_mini,
+            zoom_window: ZoomWindow::new(),
         };
         res.new_size_selected(ctx);
         res
@@ -380,6 +382,9 @@ impl EventHandler for Stage {
 
     fn mouse_wheel_event(&mut self, _ctx: &mut Context, dx: f32, dy: f32) {
         self.egui_mini.mouse_wheel_event(dx, dy);
+        if !self.gol.config.ui_contains_pointer {
+            self.zoom_window.zoom((0.9_f32).powf(dy));
+        }
     }
 
     fn char_event(
@@ -400,6 +405,13 @@ impl EventHandler for Stage {
         _repeat: bool,
     ) {
         self.egui_mini.key_down_event(ctx, keycode, keymods);
+        match keycode {
+            KeyCode::Right => self.zoom_window.pan_x(0.01),
+            KeyCode::Left => self.zoom_window.pan_x(-0.01),
+            KeyCode::Up => self.zoom_window.pan_y(0.01),
+            KeyCode::Down => self.zoom_window.pan_y(-0.01),
+            _ => {}
+        }
     }
 
     fn key_up_event(&mut self, _ctx: &mut Context, keycode: KeyCode, keymods: KeyMods) {
@@ -417,6 +429,7 @@ impl EventHandler for Stage {
             None,
         );
         ctx.begin_default_pass(Default::default());
+        self.zoom_window.set_window(ctx);
 
         ctx.apply_pipeline(&self.pipeline);
         for binding in &self.bindings {

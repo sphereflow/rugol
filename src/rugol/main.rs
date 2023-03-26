@@ -75,11 +75,15 @@ impl<const CW: usize> RState<CW> {
         let acc_matrix = &mut self.acc_vec[self.vec_ix];
         let indices = {
             let mut res = IndexSet::new(acc_matrix.width(), acc_matrix.height());
-            let mut range_vec = Vec::new();
-            self.quad_tree.get_changed_ranges(CW, 0, 0, &mut range_vec);
-            // dbg!(&range_vec);
-            for range in range_vec.iter() {
-                res.insert_rect(range);
+            if self.config.brandom_rules {
+                res.insert_rect(&((0, acc_matrix.width() - 1)..=(0, acc_matrix.height() - 1)));
+            } else {
+                let mut range_vec = Vec::new();
+                self.quad_tree.get_changed_ranges(CW, 0, 0, &mut range_vec);
+                // dbg!(&range_vec);
+                for range in range_vec.iter() {
+                    res.insert_rect(range);
+                }
             }
             res
         };

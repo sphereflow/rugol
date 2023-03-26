@@ -43,12 +43,19 @@ impl ZoomWindow {
         self.horizontal = 1.0;
     }
 
+    pub fn mouse_to_screen(&self, ctx: &mut Context, mouse_x: f32, mouse_y: f32) -> (f32, f32) {
+        let (width, height) = ctx.screen_size();
+        let viewport_corner_x = ((self.midpoint.x - 0.5) * self.horizontal + 0.5) * width;
+        let viewport_corner_y = ((self.midpoint.y - 0.5) * self.vertical + 0.5) * height;
+        let x = (mouse_x - viewport_corner_x) / self.horizontal;
+        let y = (mouse_y - viewport_corner_y) / self.vertical;
+        (x, y)
+    }
+
     pub fn set_window(&self, ctx: &mut Context) {
         let (width, height) = ctx.screen_size();
-        let viewport_corner_x =
-            (-width * self.midpoint.x - 0.5 * width) * self.horizontal + 0.5 * width;
-        let viewport_corner_y =
-            (-height * self.midpoint.y - 0.5 * height) * self.vertical + 0.5 * height;
+        let viewport_corner_x = ((-self.midpoint.x - 0.5) * self.horizontal + 0.5) * width;
+        let viewport_corner_y = ((-self.midpoint.y - 0.5) * self.vertical + 0.5) * height;
         let viewport_width = width * self.horizontal;
         let viewport_height = height * self.vertical;
         ctx.apply_viewport(

@@ -185,6 +185,7 @@ impl Stage {
             self.gol.get_fields().width(),
             self.gol.get_fields().height(),
         );
+        let (mouse_x, mouse_y) = self.zoom_window.mouse_to_screen(ctx, mouse_x, mouse_y);
         let ixx = (field_width as f32 * mouse_x / win_width) as usize;
         let ixy = (field_height as f32 * mouse_y / win_height) as usize;
         (ixx.min(field_width - 1), ixy.min(field_height - 1))

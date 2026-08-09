@@ -11,7 +11,6 @@ use crate::{
     traits::ConvolutionT,
     BaseMatrix, FieldType, RState, CELLS,
 };
-use egui_dock::Tree;
 use instant::Instant;
 use matrices::traits::*;
 use matrices::{const_matrix::ConstMatrix, vec_matrix::VecMatrix};
@@ -45,7 +44,7 @@ impl<const CW: usize> RState<CW> {
         for i in 0..9 {
             tabs.push(i);
         }
-        let tree = Tree::new(tabs);
+        let dock_state = DockState::new(tabs);
         RugolState {
             conv_kernels: [conv_matrix; 9],
             cell_type_map,
@@ -63,7 +62,7 @@ impl<const CW: usize> RState<CW> {
             save_file: None,
             ui_up_arrow: None,
             ui_down_arrow: None,
-            tree,
+            dock_state,
         }
     }
 

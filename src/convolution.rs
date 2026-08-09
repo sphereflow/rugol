@@ -3,8 +3,8 @@ use crate::{index_set::IndexSet, CellType};
 use matrices::traits::*;
 use matrices::vec_matrix::VecMatrix;
 use num_traits::{AsPrimitive, One, Zero};
-use quad_rand::{gen_range, RandomRange};
 use std::ops::{AddAssign, Mul};
+use urandom::distr::SampleUniform;
 
 // the kernel should be a square matrix
 #[derive(Debug, Clone)]
@@ -89,15 +89,17 @@ impl<T: Copy + Default, const KW: usize> MatrixDefault<T> for Convolution<T, KW>
     }
 }
 
-impl<T: Copy + RandomRange + Zero + 'static, const KW: usize> MatrixRandom<T> for Convolution<T, KW>
+impl<T: Copy + Zero + SampleUniform + 'static, const KW: usize> MatrixRandom<T>
+    for Convolution<T, KW>
 where
     u8: AsPrimitive<T>,
 {
     fn new_random(width: usize, height: usize) -> Self {
         let mut res = Self::new(width, height, Zero::zero());
+        let mut rng = urandom::rng::Xoshiro256Rng::new();
         for ixx in 0..width {
             for ixy in 0..height {
-                let random_value = gen_range(Zero::zero(), 2_u8.as_());
+                let random_value = rng.uniform(Zero::zero()..2_u8.as_());
                 Self::set_base_at_index(&mut res.base, width, height, (ixx, ixy), random_value);
             }
         }
@@ -106,9 +108,10 @@ where
 
     fn new_random_range(width: usize, height: usize, range: std::ops::RangeInclusive<T>) -> Self {
         let mut res = Self::new(width, height, Zero::zero());
+        let mut rng = urandom::rng::Xoshiro256Rng::new();
         for ixx in 0..width {
             for ixy in 0..height {
-                let random_value = gen_range(*range.start(), *range.end());
+                let random_value = rng.uniform(range.clone());
                 Self::set_base_at_index(&mut res.base, width, height, (ixx, ixy), random_value);
             }
         }

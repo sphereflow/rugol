@@ -3,10 +3,10 @@ use crate::{
 };
 use egui::{
     emath::Numeric, Color32, DragValue, ImageButton, Label, Rgba, RichText, Sense, TextureHandle,
-    Ui, Vec2, WidgetText,
+    Ui, WidgetText,
 };
 use egui_dock::TabViewer;
-use matrices::traits::Matrix;
+use matrices::traits::{Matrix, MatrixClone};
 use std::ops::RangeInclusive;
 
 pub struct ConvWrapper<'a, const CW: usize> {
@@ -156,20 +156,14 @@ impl<'a, const CW: usize> ConvWrapper<'a, CW> {
             ui.vertical(|ui| {
                 // copy up / down
                 if let Some(up) = self.ui_up_arrow {
-                    if convolution_index > 0
-                        && ui
-                            .add(ImageButton::new(up, Vec2::new(10.0, 10.0)))
-                            .clicked()
-                    {
+                    if convolution_index > 0 && ui.add(ImageButton::new(up)).clicked() {
                         self.copy_indices = vec![(convolution_index, convolution_index - 1)];
                     }
                 }
 
                 if let Some(down) = self.ui_down_arrow {
                     if convolution_index < (kernel_len - 1)
-                        && ui
-                            .add(ImageButton::new(down, Vec2::new(10.0, 10.0)))
-                            .clicked()
+                        && ui.add(ImageButton::new(down)).clicked()
                     {
                         self.copy_indices = vec![(convolution_index, convolution_index + 1)];
                     }

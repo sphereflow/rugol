@@ -312,30 +312,20 @@ impl<const CW: usize> RState<CW> {
                     }
                     if let Some(probability) = rule.transition_probability.as_mut() {
                         changed |= ui
-                            .add(
-                                DragValue::new(probability)
-                                    .speed(0.01)
-                                    .clamp_range(0.0..=1.0),
-                            )
+                            .add(DragValue::new(probability).speed(0.01).range(0.0..=1.0))
                             .changed();
                     }
                 }
                 if del_ix > 0 {
                     if let Some(up) = &self.ui_up_arrow {
-                        if ui
-                            .add(ImageButton::new(up, Vec2::new(10.0, 10.0)))
-                            .clicked()
-                        {
+                        if ui.add(ImageButton::new(up)).clicked() {
                             o_up_ix = Some(del_ix);
                         }
                     }
                 }
                 if del_ix < (num_rules - 1) {
                     if let Some(down) = &self.ui_down_arrow {
-                        if ui
-                            .add(ImageButton::new(down, Vec2::new(10.0, 10.0)))
-                            .clicked()
-                        {
+                        if ui.add(ImageButton::new(down)).clicked() {
                             o_down_ix = Some(del_ix);
                         }
                     }
@@ -415,11 +405,10 @@ impl<const CW: usize> RState<CW> {
             copy_indices: Vec::new(),
             copy_to_all: None,
         };
-        let mut style = egui_dock::Style::from_egui(ui.ctx().style().as_ref());
-        style.show_close_buttons = false;
+        let style = egui_dock::Style::from_egui(ui.ctx().style().as_ref());
         Window::new("convolution matrices").show(ui.ctx(), |ui| {
             ui.vertical(|ui| {
-                DockArea::new(&mut self.tree)
+                DockArea::new(&mut self.dock_state)
                     .style(style)
                     .show_inside(ui, &mut convolution_wrapper);
             });

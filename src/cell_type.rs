@@ -5,8 +5,12 @@ use std::{
 
 use egui::{emath::Numeric, DragValue, RadioButton, Ui};
 use num_traits::{AsPrimitive, Bounded, One, Zero};
-use quad_rand::{gen_range, RandomRange};
 use serde::{Deserialize, Serialize};
+use urandom::{
+    distr::{SampleUniform, UniformInt, UniformSampler},
+    rng::Xoshiro256Rng,
+    Distribution, Random,
+};
 
 use crate::{color::Color, color_u8, FieldType};
 
@@ -40,17 +44,47 @@ impl Numeric for CellType {
     }
 }
 
+impl SampleUniform for CellType {
+    type Sampler = UniformCellType;
+}
+
+pub struct UniformCellType {
+    inner: UniformInt<usize>,
+}
+
+impl UniformSampler<CellType> for UniformCellType {
+    #[inline]
+    fn try_new(low: CellType, high: CellType) -> Result<Self, urandom::distr::UniformError> {
+        UniformInt::try_new(low as usize, high as usize).map(|inner| UniformCellType { inner })
+    }
+
+    #[inline]
+    fn try_new_inclusive(
+        low: CellType,
+        high: CellType,
+    ) -> Result<Self, urandom::distr::UniformError> {
+        UniformInt::try_new_inclusive(low as usize, high as usize)
+            .map(|inner| UniformCellType { inner })
+    }
+}
+
+impl Distribution<CellType> for UniformCellType {
+    fn sample<R: urandom::Rng + ?Sized>(&self, rand: &mut Random<R>) -> CellType {
+        let rand_value: usize = self.inner.sample(rand);
+        CellType::try_from(rand_value).unwrap()
+    }
+}
+
 impl CellType {
     pub fn as_index(&self) -> usize {
         *self as usize
     }
 
-    pub fn random_range(range: &RangeInclusive<CellType>) -> CellType {
-        Self::try_from(gen_range::<usize>(
-            *range.start() as usize,
-            *range.end() as usize + 1,
-        ))
-        .expect("CellType::try_from(usize) failed")
+    pub fn random_range(
+        rng: &mut Random<Xoshiro256Rng>,
+        range: &RangeInclusive<CellType>,
+    ) -> CellType {
+        rng.uniform(range.clone())
     }
 }
 
@@ -85,12 +119,6 @@ impl Display for CellType {
             CellType::G => write!(f, "G"),
             CellType::H => write!(f, "H"),
         }
-    }
-}
-
-impl RandomRange for CellType {
-    fn gen_range(low: Self, high: Self) -> Self {
-        Self::random_range(&(low..=high))
     }
 }
 

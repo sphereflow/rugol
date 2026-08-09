@@ -29,11 +29,12 @@ impl<T: Copy + PartialEq + PartialOrd> RuleSet<T> {
     }
 
     pub fn apply_random(&self, initial_value: CellType, convolution: T) -> CellType {
+        let mut rng = urandom::rng::Xoshiro256Rng::new();
         for rule in &self.rules {
             if rule.state == initial_value && rule.range.contains(&convolution) {
                 let bfire = rule
                     .transition_probability
-                    .map(|prob| quad_rand::gen_range(0.0, 1.0) <= prob)
+                    .map(|prob| rng.uniform(0.0..1.0) <= prob)
                     .unwrap_or(true);
                 if bfire {
                     return rule.transition;

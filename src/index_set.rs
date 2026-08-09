@@ -36,7 +36,7 @@ impl IndexSet {
         self.indices[ixx + ixy * self.matrix_width]
     }
 
-    pub fn iter(&self) -> IndexSetIter {
+    pub fn iter(&self) -> IndexSetIter<'_> {
         IndexSetIter {
             iter: self.indices.ones(),
             matrix_width: self.matrix_width,

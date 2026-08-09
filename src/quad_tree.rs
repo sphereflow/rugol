@@ -1,5 +1,6 @@
 use std::fmt::Write;
-use std::{iter::repeat, ops::RangeInclusive};
+use std::iter::repeat_n;
+use std::ops::RangeInclusive;
 
 #[derive(Clone, Debug)]
 pub struct QuadTree<T> {
@@ -32,9 +33,10 @@ impl QuadTree<Node> {
             y_range: 0..=0,
         };
         for level in 0..levels {
-            tree.push(Vec::from_iter(
-                repeat(init_node.clone()).take(4_usize.pow(level as u32)),
-            ));
+            tree.push(Vec::from_iter(repeat_n(
+                init_node.clone(),
+                4_usize.pow(level as u32),
+            )));
         }
         let mut res = QuadTree {
             tree,
@@ -214,9 +216,5 @@ impl QuadTree<Node> {
 }
 
 fn clamp_start_index(ix: usize, wh: usize) -> usize {
-    if ix < wh {
-        0
-    } else {
-        ix - wh
-    }
+    ix.saturating_sub(wh)
 }

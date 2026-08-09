@@ -1,11 +1,13 @@
+use crate::{
+    drag_event::DragEvent, selection::Selection, zoom_window::ZoomWindow, RState, CONVOLUTION_WIDTH,
+};
 use egui::{Color32, ColorImage, ImageData, TextureOptions};
 use egui_miniquad::EguiMq;
 use instant::Instant;
 use matrices::traits::Matrix;
-use miniquad::*;
+use miniquad::{window::screen_size, *};
 use num_traits::Zero;
-
-use crate::{zoom_window::ZoomWindow, RState, CONVOLUTION_WIDTH};
+use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
@@ -16,45 +18,79 @@ pub struct Vec2 {
 
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
-struct Vertex {
-    pos: Vec2,
-    color: [f32; 4],
+pub struct Vertex {
+    pub pos: Vec2,
+    pub color: [f32; 4],
+}
+
+impl Vertex {
+    pub fn new(x: f32, y: f32, color: [f32; 4]) -> Self {
+        Vertex {
+            pos: Vec2 { x, y },
+            color,
+        }
+    }
 }
 
 struct Stage {
+    ctx: Box<dyn RenderingBackend>,
     egui_mini: EguiMq,
     pipeline: Pipeline,
     bindings: Vec<Bindings>,
     vertices: Vec<Vec<Vertex>>,
-    vertex_buffers: Vec<Buffer>,
-    index_buffer: Buffer,
+    vertex_buffers: Vec<BufferId>,
+    index_buffer: BufferId,
     gol: RState<CONVOLUTION_WIDTH>,
     bdraw: bool,
     last_draw_index: Option<(usize, usize)>,
     zoom_window: ZoomWindow,
+    selection: Option<Selection>,
+    drag_event: DragEvent,
 }
 
 impl Stage {
-    pub fn new(ctx: &mut Context) -> Stage {
-        let index_buffer = Buffer::immutable::<u16>(ctx, BufferType::IndexBuffer, &[]);
+    pub fn new() -> Stage {
+        let mut ctx: Box<dyn RenderingBackend> = window::new_rendering_backend();
+        let index_buffer = ctx.new_buffer(
+            BufferType::IndexBuffer,
+            BufferUsage::Immutable,
+            BufferSource::empty::<u16>(0),
+        );
+
         let bindings = vec![];
+        let shader_source = match ctx.info().backend {
+            Backend::OpenGl => ShaderSource::Glsl {
+                vertex: shader::VERTEX,
+                fragment: shader::FRAGMENT,
+            },
+            Backend::Metal => ShaderSource::Msl {
+                program: shader::METAL,
+            },
+        };
+        let shader = ctx.new_shader(shader_source, shader::meta()).unwrap();
 
-        let shader = Shader::new(ctx, shader::VERTEX, shader::FRAGMENT, shader::meta()).unwrap();
-
-        let pipeline = Pipeline::new(
-            ctx,
+        let pipeline = ctx.new_pipeline(
             &[BufferLayout::default()],
             &[
                 VertexAttribute::new("pos", VertexFormat::Float2),
                 VertexAttribute::new("color", VertexFormat::Float4),
             ],
             shader,
+            PipelineParams {
+                color_blend: Some(BlendState::new(
+                    Equation::Add,
+                    BlendFactor::Value(BlendValue::SourceAlpha),
+                    BlendFactor::OneMinusValue(BlendValue::SourceAlpha),
+                )),
+                ..Default::default()
+            },
         );
+
         let mut gol = <RState<CONVOLUTION_WIDTH>>::new();
         gol.donut_all_kernels(0..=1, Zero::zero());
 
         // arrows
-        let egui_mini = EguiMq::new(ctx);
+        let egui_mini = EguiMq::new(ctx.as_mut());
         let mut image_up_arrow = ColorImage::new([20, 20], Color32::DARK_GRAY);
         let w = image_up_arrow.width();
         let h = image_up_arrow.height();
@@ -77,16 +113,17 @@ impl Stage {
         }
         gol.ui_up_arrow = Some(egui_mini.egui_ctx().load_texture(
             "",
-            ImageData::Color(image_up_arrow),
+            ImageData::Color(Arc::new(image_up_arrow)),
             TextureOptions::default(),
         ));
         gol.ui_down_arrow = Some(egui_mini.egui_ctx().load_texture(
             "",
-            ImageData::Color(image_down_arrow),
+            ImageData::Color(Arc::new(image_down_arrow)),
             TextureOptions::default(),
         ));
 
         let mut res = Stage {
+            ctx,
             pipeline,
             bindings,
             vertices: vec![],
@@ -97,12 +134,20 @@ impl Stage {
             last_draw_index: None,
             egui_mini,
             zoom_window: ZoomWindow::new(),
+            selection: None,
+            drag_event: DragEvent {
+                mouse_down: false,
+                dragging: false,
+                drag_move_dist: 10.0,
+                drag_start: None,
+                drag_end: None,
+            },
         };
-        res.new_size_selected(ctx);
+        res.new_size_selected();
         res
     }
 
-    fn new_size_selected(&mut self, ctx: &mut Context) {
+    fn new_size_selected(&mut self) {
         self.vertices.clear();
         self.vertex_buffers.clear();
         self.bindings.clear();
@@ -121,7 +166,11 @@ impl Stage {
                 index_base + 3,
             ]);
         }
-        self.index_buffer = Buffer::immutable(ctx, BufferType::IndexBuffer, &indices);
+        self.index_buffer = self.ctx.new_buffer(
+            BufferType::IndexBuffer,
+            BufferUsage::Immutable,
+            BufferSource::slice(&indices),
+        );
         for ixy in 0..height {
             self.vertices.push(vec![]);
             for ixx in 0..width {
@@ -166,10 +215,10 @@ impl Stage {
                 ]);
             }
             //self.vertex_buffer = Buffer::immutable(ctx, BufferType::VertexBuffer, &self.vertices);
-            self.vertex_buffers.push(Buffer::stream(
-                ctx,
+            self.vertex_buffers.push(self.ctx.new_buffer(
                 BufferType::VertexBuffer,
-                self.vertices[ixy].len() * std::mem::size_of::<Vertex>(),
+                BufferUsage::Stream,
+                BufferSource::empty::<Vertex>(self.vertices[ixy].len()),
             ));
             self.bindings.push(Bindings {
                 vertex_buffers: vec![self.vertex_buffers[ixy]],
@@ -179,13 +228,13 @@ impl Stage {
         }
     }
 
-    fn mouse_pos_to_index(&self, ctx: &mut Context, mouse_x: f32, mouse_y: f32) -> (usize, usize) {
-        let (win_width, win_height) = ctx.screen_size();
+    fn mouse_pos_to_index(&self, mouse_x: f32, mouse_y: f32) -> (usize, usize) {
+        let (win_width, win_height) = screen_size();
         let (field_width, field_height) = (
             self.gol.get_fields().width(),
             self.gol.get_fields().height(),
         );
-        let (mouse_x, mouse_y) = self.zoom_window.mouse_to_screen(ctx, mouse_x, mouse_y);
+        let (mouse_x, mouse_y) = self.zoom_window.mouse_to_screen(mouse_x, mouse_y);
         let ixx = (field_width as f32 * mouse_x / win_width) as usize;
         let ixy = (field_height as f32 * mouse_y / win_height) as usize;
         (ixx.min(field_width - 1), ixy.min(field_height - 1))
@@ -208,10 +257,10 @@ impl Stage {
 }
 
 impl EventHandler for Stage {
-    fn update(&mut self, ctx: &mut Context) {
-        ctx.clear(Some((0., 0., 0., 1.)), None, None);
+    fn update(&mut self) {
+        self.ctx.clear(Some((0., 0., 0., 1.)), None, None);
         if self.gol.config.bnew_size {
-            self.new_size_selected(ctx);
+            self.new_size_selected();
             self.gol.config.bnew_size = false;
         }
         if !self.gol.config.paused {
@@ -233,7 +282,10 @@ impl EventHandler for Stage {
                     self.vertices[ixy][ixx * 4 + 3].color = color;
                 }
 
-                self.vertex_buffers[ixy].update(ctx, &self.vertices[ixy]);
+                self.ctx.buffer_update(
+                    self.vertex_buffers[ixy],
+                    BufferSource::slice(&self.vertices[ixy]),
+                );
                 //self.vertex_buffer = Buffer::immutable(ctx, BufferType::VertexBuffer, &self.vertices);
                 self.bindings[ixy] = Bindings {
                     vertex_buffers: vec![self.vertex_buffers[ixy]],
@@ -243,48 +295,67 @@ impl EventHandler for Stage {
             }
             self.gol.config.bupdate = false;
         }
+        self.selection
+            .as_mut()
+            .map(|s| s.update_binding(self.ctx.as_mut()));
     }
 
-    fn mouse_button_down_event(
-        &mut self,
-        ctx: &mut Context,
-        button: MouseButton,
-        x_pos: f32,
-        y_pos: f32,
-    ) {
+    fn mouse_button_down_event(&mut self, button: MouseButton, x_pos: f32, y_pos: f32) {
         // handle drawing with the mouse pointer on the screen
         if button == MouseButton::Left && !self.gol.config.ui_contains_pointer {
-            let (ixx, ixy) = self.mouse_pos_to_index(ctx, x_pos, y_pos);
+            let (ixx, ixy) = self.mouse_pos_to_index(x_pos, y_pos);
             self.last_draw_index = Some((ixx, ixy));
             self.gol.set_selected_at_index(ixx, ixy);
             self.draw_circle_at_index(ixx, ixy);
             self.gol.config.bupdate = true;
             self.bdraw = true;
+            let (x, y) = self.zoom_window.mouse_to_screen(x_pos, y_pos);
+            self.drag_event.mouse_down(Vec2 { x, y });
+            self.selection = self.drag_event.as_selection(self.ctx.as_mut());
+            self.selection
+                .as_mut()
+                .map(|s| s.update_binding(self.ctx.as_mut()));
         }
-        self.egui_mini
-            .mouse_button_down_event(ctx, button, x_pos, y_pos);
+        self.egui_mini.mouse_button_down_event(button, x_pos, y_pos);
     }
 
-    fn mouse_button_up_event(&mut self, ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
+    fn mouse_button_up_event(&mut self, button: MouseButton, x: f32, y: f32) {
         if button == MouseButton::Left {
             if self.bdraw && !self.gol.config.ui_contains_pointer {
-                let (ixx, ixy) = self.mouse_pos_to_index(ctx, x, y);
+                let (ixx, ixy) = self.mouse_pos_to_index(x, y);
                 self.draw_circle_at_index(ixx, ixy);
                 self.gol.config.bupdate = true;
             }
             self.last_draw_index = None;
             self.bdraw = false;
+            let (sx, sy) = self.zoom_window.mouse_to_screen(x, y);
+            self.drag_event.mouse_up(Vec2 { x: sx, y: sy });
+            self.selection = self.drag_event.as_selection(self.ctx.as_mut());
+            self.selection
+                .as_mut()
+                .map(|s| s.update_binding(self.ctx.as_mut()));
         }
-        self.egui_mini.mouse_button_up_event(ctx, button, x, y);
+        self.egui_mini.mouse_button_up_event(button, x, y);
     }
 
-    fn mouse_motion_event(&mut self, ctx: &mut Context, x: f32, y: f32) {
+    fn mouse_motion_event(&mut self, x: f32, y: f32) {
         self.egui_mini.mouse_motion_event(x, y);
+        let (sx, sy) = self.zoom_window.mouse_to_screen(x, y);
+        self.drag_event.mouse_move(Vec2 { x: sx, y: sy });
+        self.selection = self.drag_event.as_selection(self.ctx.as_mut());
+        self.selection
+            .as_mut()
+            .map(|s| s.update_binding(self.ctx.as_mut()));
+        if let Some(s) = self.selection.as_ref() {
+            println!("{s:?}");
+        } else {
+            println!("no drag selection");
+        }
         if self.gol.config.ui_contains_pointer {
             self.last_draw_index = None;
             self.bdraw = false;
         }
-        let (ixx, ixy) = self.mouse_pos_to_index(ctx, x, y);
+        let (ixx, ixy) = self.mouse_pos_to_index(x, y);
         self.gol.hover_ix = Some((ixx, ixy));
         if self.bdraw {
             self.draw_circle_at_index(ixx, ixy);
@@ -381,31 +452,19 @@ impl EventHandler for Stage {
         }
     }
 
-    fn mouse_wheel_event(&mut self, _ctx: &mut Context, dx: f32, dy: f32) {
+    fn mouse_wheel_event(&mut self, dx: f32, dy: f32) {
         self.egui_mini.mouse_wheel_event(dx, dy);
         if !self.gol.config.ui_contains_pointer {
             self.zoom_window.zoom((0.9_f32).powf(dy));
         }
     }
 
-    fn char_event(
-        &mut self,
-        _ctx: &mut Context,
-        character: char,
-        _keymods: KeyMods,
-        _repeat: bool,
-    ) {
+    fn char_event(&mut self, character: char, _keymods: KeyMods, _repeat: bool) {
         self.egui_mini.char_event(character);
     }
 
-    fn key_down_event(
-        &mut self,
-        ctx: &mut Context,
-        keycode: KeyCode,
-        keymods: KeyMods,
-        _repeat: bool,
-    ) {
-        self.egui_mini.key_down_event(ctx, keycode, keymods);
+    fn key_down_event(&mut self, keycode: KeyCode, keymods: KeyMods, _repeat: bool) {
+        self.egui_mini.key_down_event(keycode, keymods);
         match keycode {
             KeyCode::Right => self.zoom_window.pan_x(0.01),
             KeyCode::Left => self.zoom_window.pan_x(-0.01),
@@ -415,35 +474,31 @@ impl EventHandler for Stage {
         }
     }
 
-    fn key_up_event(&mut self, _ctx: &mut Context, keycode: KeyCode, keymods: KeyMods) {
+    fn key_up_event(&mut self, keycode: KeyCode, keymods: KeyMods) {
         self.egui_mini.key_up_event(keycode, keymods);
     }
 
-    fn draw(&mut self, ctx: &mut Context) {
+    fn draw(&mut self) {
         self.gol.inst = Instant::now();
-        ctx.set_blend(
-            Some(BlendState::new(
-                Equation::Add,
-                BlendFactor::Value(BlendValue::SourceAlpha),
-                BlendFactor::OneMinusValue(BlendValue::SourceAlpha),
-            )),
-            None,
-        );
-        ctx.begin_default_pass(Default::default());
-        self.zoom_window.set_window(ctx);
+        self.ctx.begin_default_pass(Default::default());
+        self.zoom_window.set_window(self.ctx.as_mut());
 
-        ctx.apply_pipeline(&self.pipeline);
+        self.ctx.apply_pipeline(&self.pipeline);
         for binding in &self.bindings {
-            ctx.apply_bindings(binding);
+            self.ctx.apply_bindings(binding);
 
-            ctx.draw(0, 6 * self.gol.get_fields().width() as i32, 1);
+            self.ctx
+                .draw(0, 6 * self.gol.get_fields().width() as i32, 1);
         }
-        ctx.end_render_pass();
-        self.egui_mini.run(ctx, |_mq_ctx, egui_ctx| {
+        self.selection.as_ref().map(|s| {
+            s.draw(self.ctx.as_mut());
+        });
+        self.ctx.end_render_pass();
+        self.egui_mini.run(self.ctx.as_mut(), |_mq_ctx, egui_ctx| {
             self.gol.ui(egui_ctx);
         });
-        self.egui_mini.draw(ctx);
-        ctx.commit_frame();
+        self.egui_mini.draw(self.ctx.as_mut());
+        self.ctx.commit_frame();
 
         #[cfg(not(target_arch = "wasm32"))]
         {
@@ -457,7 +512,7 @@ impl EventHandler for Stage {
 }
 
 pub fn mini_main() {
-    miniquad::start(conf::Conf::default(), |ctx| Box::new(Stage::new(ctx)));
+    miniquad::start(conf::Conf::default(), || Box::new(Stage::new()));
 }
 
 mod shader {
@@ -476,6 +531,45 @@ mod shader {
     varying lowp vec4 fragment_color;
     void main() {
         gl_FragColor = fragment_color;
+    }"#;
+
+    pub const METAL: &str = r#"
+    #include <metal_stdlib>
+
+    using namespace metal;
+
+    struct Uniforms
+    {
+        float2 offset;
+    };
+
+    struct Vertex
+    {
+        float2 in_pos   [[attribute(0)]];
+        float2 in_uv    [[attribute(1)]];
+    };
+
+    struct RasterizerData
+    {
+        float4 position [[position]];
+        float2 uv       [[user(locn0)]];
+    };
+
+    vertex RasterizerData vertexShader(
+      Vertex v [[stage_in]], 
+      constant Uniforms& uniforms [[buffer(0)]])
+    {
+        RasterizerData out;
+
+        out.position = float4(v.in_pos.xy + uniforms.offset, 0.0, 1.0);
+        out.uv = v.in_uv;
+
+        return out;
+    }
+
+    fragment float4 fragmentShader(RasterizerData in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler texSmplr [[sampler(0)]])
+    {
+        return tex.sample(texSmplr, in.uv);
     }"#;
 
     pub fn meta() -> ShaderMeta {
